@@ -10,18 +10,25 @@
 [image8]: ./assets/rviz_1.png "rviz"
 [image9]: ./assets/real_robot_1.png "real robot"
 [image10]: ./assets/real_robot_2.png "real robot"
-
+[image11]: ./assets/camera_1.png "camera"
+[image12]: ./assets/camera_2.png "camera"
 
 # Kognitív robotika
+
+## Korábbi Házi feladatok - Robotrendszerek
+
+<a href="https://www.youtube.com/watch?v=uLRQJh-y9AU"><img height="400" src="./assets/projects.png"></a>
 
 ## Tartalomjegyzék
 1. [ROS alapok](#ROS-alapok)  
 2. [Gazebo alapok](#Gazebo-alapok)  
-3. [Turtlebot MOGI](#Turtlebot-MOGI)  
-4. [Vonalkövetés](#Vonalkövetés)
-5. [Hagyományos képfeldolgozás](#Hagyományos-képfeldolgozás)
-6. [Neurális háló](#Neurális-háló)
-7. [Teszt a valódi roboton](#Teszt-a-valódi-roboton)
+3. [Teszt a valódi roboton](#Teszt-a-valódi-roboton)
+4. [Turtlebot MOGI](#Turtlebot-MOGI)  
+5. [Vonalkövetés](#Vonalkövetés)
+6. [Hagyományos képfeldolgozás](#Hagyományos-képfeldolgozás)
+7. [Képfeldolgozás a valódi roboton](#Képfeldolgozás-a-valódi-roboton)
+8. [Neurális háló](#Neurális-háló)
+9. [Neurális háló a valódi roboton](#Neurális-háló-a-valódi-roboton)
 
 # ROS alapok
 A Kognitív robotika (BMEGEMINMKR) labor anyaga jelentős részben támaszkodik a [Robotrendszerek (BMEGEMINMRL) tárgy anyagára](https://github.com/MOGI-ROS/Week-1-2-Introduction-to-ROS#mi-is-az-a-ros). Az itt található tananyag sokszor rövidített/egyszerűsített kivonata a Robotrendszerek tárgy anyagának, de ettől függetlenül, önálló tananyag és nem szükséges hozzá a Robotrendszerek tárgy ismerete. 
@@ -384,15 +391,15 @@ Ez automatikusan elindít minden szükséges node-ot és nyit egy RViz-t, ahol l
 
 ![alt text][image8]
 
-## Teszt a valódi roboton
+# Teszt a valódi roboton
 
-### Első indítás
+## Első indítás
 Ahhoz, hogy egyszerűen ki tudjuk próbálni az itt tanultakat a valódi roboton, összeraktam egy SD kártya image-et, amit egy tetszőleges Turtlebot SD kártyájára kiírva már lehet is használni pár egyszerű beállítást követően. Az image tartalmazza a következőket:
 * beállított `.bashrc`
 * beállított és lefordított catkin workspace, ami a Raspberry kamerát is támogatja
 * beállított SMB server, hogy könnyen hozzá tudjunk férni a fájlokhoz a roboton hálózaton keresztül
 
->SD kártya image: xxx
+>SD kártya image: [Link a Google drive-ra](https://drive.google.com/file/d/19eiNYBjvwrmzaS9EkkhA9jJw_dw-v1pL/view?usp=sharing)
 
 Miután az image-et kiírtuk a kártyára keressünk egy HDMI monitort és egy USB-s billentyűzetet, hogy beállítsuk a Wifi-t és a robot host nevét a hálózaton, utána nem lesz többet szükségünk sem monitorra sem billentyűzetre.
 
@@ -414,7 +421,7 @@ Ezek után indítsuk újra a robotot és utána csatlakozhatunk hozzá hálózat
 >```
 ---
 
-### A Beállítások után
+## A Beállítások után
 
 A hostnév alapján derítsétek ki a robot IP címét például a ping paranccsal, esetmben ez `192.168.1.45`.
 ```console
@@ -466,15 +473,222 @@ roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
 
 # Turtlebot MOGI
 
+A tárgy további részében a saját `turtlebot3-mogi` csomagunkkal fogunk dolgozni, de előtte még egy pár módosítást végre kell hajtanunk a gyári `turtlebot3` csomagon is. Emlékezzünk rá, hogy épp emiatt nem a hivatalos `turtlebot3` csomagot töltötük le GIT-ből, hanem a MOGI-s verziót!
+
+```
+git clone https://github.com/MOGI-ROS/turtlebot3
+```
+>Ehelyett:
+>```console
+>git clone https://github.com/ROBOTIS-GIT/turtlebot3
+
+A következő lépés a `mogi-ros` branchre váltás a `master` helyett. Ha nem definiáljuk melyik branchet szeretnénk használni letöltéskor, akkor az alapértelmezett branchen leszünk, ami általában a `master` vagy a `main`.
+
+A `git status` paranccsal bármikor megnézhetjük milyen branchen vagyunk:
+```console
+david@david-precision-7520:~/bme_catkin_ws/src/turtlebot3$ git status
+On branch master
+Your branch is up to date with 'MOGI-ROS/master'.
+
+nothing to commit, working tree clean
+```
+
+Az elérhető brancheket is meg tudjuk nézni a `git branch -a` paranccsal:
+```console
+david@david-precision-7520:~/bme_catkin_ws/src/turtlebot3$ git branch -a
+  camera-plugin
+* master
+  mogi-robot
+  mogi-ros
+  remotes/MOGI-ROS/camera-plugin
+  remotes/MOGI-ROS/master
+  remotes/MOGI-ROS/mogi-robot
+  remotes/MOGI-ROS/mogi-ros
+```
+
+A `git checkout` paranccsal pedig egyszerűen válthatunk branchet - természetesen akkor, ha minden módosításunkat commitoltuk az aktuális branchen!
+```console
+david@david-precision-7520:~/bme_catkin_ws/src/turtlebot3$ git checkout mogi-ros
+Switched to branch 'mogi-ros'
+Your branch is up to date with 'MOGI-ROS/mogi-ros'.
+```
+>És még ennél is sokkal egyszerűbb egy grafikus felületű git klienst használni, mint mondjuk a GitKraken.
+
+Ha átváltottunk a `mogi-ros` branchre, nézzük is meg a módosításokat, amikre szükségünk lesz!
+
+1. Változtattunk pár launch fájlon a roboton lévő kamera miatt
+2. Hozzáadtuk a kamerát a robot modelljéhez
+
 ## Kamera hozzáadása
+A kamera hozzáadása 2 fájlt érint, a `/turtlebot3/turtlebot3_description/urdf/turtlebot3_burger.urdf.xacro` és a `/turtlebot3/turtlebot3_description/urdf/turtlebot3_burger.gazebo.xacro` fájlokat. Az előbbi a robot 3D modelljéhez adja hozzá a kameránk modelljét - egy 45 fokban megdöntött piros kockát:
+```xml
+...
+  <!-- Camera -->
+  <joint type="fixed" name="camera_joint">
+    <origin xyz="0.03 0 0.11" rpy="0 0.79 0"/>
+    <child link="camera_link"/>
+    <parent link="base_link"/>
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <link name='camera_link'>
+    <pose>0 0 0 0 0 0</pose>
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="1e-6" ixy="0" ixz="0"
+          iyy="1e-6" iyz="0"
+          izz="1e-6"
+      />
+    </inertial>
+
+    <collision name='collision'>
+      <origin xyz="0 0 0" rpy="0 0 0"/> 
+      <geometry>
+        <box size=".01 .01 .01"/>
+      </geometry>
+    </collision>
+
+    <visual name='camera_link_visual'>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size=".02 .02 .02"/>
+      </geometry>
+    </visual>
+
+  </link>
+
+  <gazebo reference="camera_link">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <joint type="fixed" name="camera_optical_joint">
+    <origin xyz="0 0 0" rpy="-1.5707 0 -1.5707"/>
+    <child link="camera_link_optical"/>
+    <parent link="camera_link"/>
+  </joint>
+
+  <link name="camera_link_optical">
+  </link>
+...
+```
+
+A másik fájl a kamera modelljéhez tartozó szimulált kamerát hozza létre:
+```xml
+...
+  <!-- Camera -->
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="camera">
+      <update_rate>30.0</update_rate>
+      <visualize>false</visualize>
+      <camera name="head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>camera</cameraName>
+        <imageTopicName>image</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>camera_link_optical</frameName>
+        <hackBaseline>0.0</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+...
+```
+
+Próbáljuk is ki a szokásos módon:
+```
+roslaunch turtlebot3_gazebo turtlebot3_house.launch
+```
+![alt text][image12] 
+és egy másik terminálban:
+```
+roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
+```
+![alt text][image11] 
 
 ## Turtlebot MOGI csomag
 
+Ha eddig még nem tettük volna, akkor töltsük le ennek a tananyagnak a git repoját a catkin workspace-ünkbe és fordítsuk újra.
+
+Ez az anyag tartalmazza a `turtlebot3_mogi` csomagot, amiben a saját modelljeink és launch fájljaink vannak.
+
+```console
+$ tree
+.
+├── CMakeLists.txt
+├── package.xml
+├── gazebo_models    --> Gazebo models of line following tracks
+├── launch           --> New launch files that we'll use from now
+├── maps             --> Saved map to use with the navigation stack
+├── meshes           --> Blender files of the line following track
+├── network_model    --> Trained neural networkto follow line
+├── rviz             --> Pre-configured RViz configurations
+├── saved_images     --> New images saved for neural network training
+├── scripts
+│   ├── line_follower_cnn.py     --> Line follower with neural network
+│   ├── line_follower.py         --> Line follower with computer vision processing
+│   ├── save_training_images.py  --> Save training images to the /saved_images folder
+│   └── train_network.py         --> Train the neural network on /training_images folder
+├── training_images  --> Training images for the neural network
+└── worlds           --> Gazebo worlds for line following using the models from /gazebo_models
+```
+
+Az új gazebo modellek használatához hozzá kell adjuk az útvonalukat a `GAZEBO_MODEL_PATH` környezeti változóhoz. Ezt praktikusan a `.bashrc` fájlban tegyük meg, de ugyanezzel a paranccsal minden terminálban kézzel is megtehetjük.
+```bash
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/bme_catkin_ws/src/Week-1-8-Cognitive-robotics/turtlebot3_mogi/gazebo_models/
+```
+
 ## Saját launch fájlok
+
+4 új launch fájlt készítettem a csomagban, ebből 3 segít nekünk egyszerűen megnyitni a szimulációnkat:
+- `/turtlebot3_mogi/launch/simulation_bringup.launch` - Egyszerű szimuláció térképezéssel
+- `/turtlebot3_mogi/launch/simulation_navigation.launch` - Szimuláció a navigációs stack-kel
+- `/turtlebot3_mogi/launch/simulation_line_follow.launch` - Szimuláció, amit a vonalkövetéshez fogunk használni
+- `/turtlebot3_mogi/launch/robot_visualization.launch` - Ezt a valódi robot adatainak a számítógépünkön való megjelenítéséhez használjuk, együtt a robot futó `turtlebot3_robot.launch` fájllal
+
+A launch fájlok használatához - különösen a navigáció stack használatához - szükségünk lesz pár extra csomagra is, amiket a következőképpen telepíthetünk:
+```
+sudo apt install ros-noetic-hector-trajectory-server
+sudo apt install ros-noetic-map-server
+sudo apt install ros-noetic-amcl
+sudo apt install ros-noetic-move-base
+sudo apt install ros-noetic-dwa-local-planner
+```
+> Illetve használhatjuk ezt a csomagot a távirányításhoz: `sudo apt install ros-noetic-teleop-twist-keyboard`
 
 # Vonalkövetés
 
+
+
 ## Világ készítése Blenderben és Gazeboban
+
+<a href="https://www.youtube.com/watch?v=i9JbusxTcOg"><img height="400" src="./assets/blender.png"></a>
 
 ## Launch fájlok, szimuláció előkészítése
 
@@ -514,18 +728,9 @@ rosrun turtlebot3_mogi line_follower_cnn.py
 
 
 ##Extra csomagok:
-sudo apt install ros-noetic-hector-trajectory-server
-sudo apt install ros-noetic-teleop-twist-keyboard
-sudo apt install ros-noetic-map-server
-
-#nav:
-sudo apt install ros-noetic-amcl
-sudo apt install ros-noetic-move-base
-sudo apt install ros-noetic-dwa-local-planner
 
 
 
-export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/catkin_ws/src/turtlebot3/turtlebot3_mogi/gazebo_models/
 
 roslaunch turtlebot3_gazebo turtlebot3_house.launch
 roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
@@ -534,19 +739,9 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 
 rosrun map_server map_saver -f ~/map
 
-Kogrob:
-1. óra
-- bemutatkozás
-- telepítés
-- ROS basic alapok, pub-sub
 
-2. óra
-- Gazebo alapok
-- turtlebot alap csomag kipróbálása
 
-3. óra
-- turtlebot szimuláció módosítása, kamera, saját launch fájlok
-- esetleg nav demo
+
 
 4. óra
 - vonalkövetés pálya blender
@@ -563,11 +758,6 @@ Kogrob:
 
 
 
-ROS alapok, gazebo alapok
-Átnézni a launchokat közösen
-Kéne saját launch file, odom vizualizáció
-Kamera plugin
-Kavirnyálás a house pályán
 Vonalkövető pálya blenderben, poz és negatív színnel
 Vonalkövetés hagyományos algoritmussal poz és neg
 Vonalkövetés tanulóminták készítése
@@ -581,9 +771,6 @@ Kamera plugin
 Kavirnyálás a house pályán
 Navigációs stack felélesztése
 Minden a valódi roboton is
-
-
-
 
 
 

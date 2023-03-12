@@ -684,11 +684,20 @@ sudo apt install ros-noetic-dwa-local-planner
 
 # Vonalkövetés
 
-
+A labor további részében vonalkövetést fogunk a turtlebot3-on megvalósítai, először hagyományos képfeldolgozás segítségével később pedig neurális hálóval. Megvizsgáljuk mindkét módszer előnyeit és hátrányait.
 
 ## Világ készítése Blenderben és Gazeboban
 
+A saját `turtlebot3_mogi` csomag már alapból tartalmazza a különböző pályákat, amiket vonalkövetésre fogunk használni. Ezeket a pályákat blenderben készítettem, amiről egy rövid tutorialt itt találtok:
+
 <a href="https://www.youtube.com/watch?v=i9JbusxTcOg"><img height="400" src="./assets/blender.png"></a>
+
+Ezen kívül a tavalyi évben egy konzultációt ezzel töltöttünk, ennek az anyagát itt éritek el:
+
+<a href="https://www.youtube.com/watch?v=K5v3cWsks8w"><img height="400" src="./assets/blender_2.png"></a>
+
+A két alap pálya van, amit használni fogunk, az egyik sötét alapon világos vonallal, a másik világos alapon sötét vonallal:
+
 
 ## Launch fájlok, szimuláció előkészítése
 

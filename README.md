@@ -12,6 +12,8 @@
 [image10]: ./assets/real_robot_2.png "real robot"
 [image11]: ./assets/camera_1.png "camera"
 [image12]: ./assets/camera_2.png "camera"
+[image13]: ./assets/dark_line.png "Line"
+[image14]: ./assets/dark_line_2.png "Line"
 
 # Kognitív robotika
 
@@ -684,15 +686,80 @@ sudo apt install ros-noetic-dwa-local-planner
 
 # Vonalkövetés
 
-
+A labor további részében vonalkövetést fogunk a turtlebot3-on megvalósítai, először hagyományos képfeldolgozás segítségével később pedig neurális hálóval. Megvizsgáljuk mindkét módszer előnyeit és hátrányait.
 
 ## Világ készítése Blenderben és Gazeboban
 
+A saját `turtlebot3_mogi` csomag már alapból tartalmazza a különböző pályákat, amiket vonalkövetésre fogunk használni. Ezeket a pályákat blenderben készítettem, amiről egy rövid tutorialt itt találtok:
+
 <a href="https://www.youtube.com/watch?v=i9JbusxTcOg"><img height="400" src="./assets/blender.png"></a>
+
+Ezen kívül a tavalyi évben egy konzultációt ezzel töltöttünk, ennek az anyagát itt éritek el:
+
+<a href="https://www.youtube.com/watch?v=K5v3cWsks8w"><img height="400" src="./assets/blender_2.png"></a>
+
+> A Blender fájlok elérhetők a `turtlebot3_mogi/meshes` mappában!
+
+A két alap pálya van, amit használni fogunk, az egyik sötét alapon világos vonallal, a másik világos alapon sötét vonallal:
+![alt text][image13] 
+![alt text][image14] 
 
 ## Launch fájlok, szimuláció előkészítése
 
+Készítsük el a saját `simulation_line_follow.launch` fájlunkat, ami betölti a pályát és spawnolja a robotot.
+
+```xml
+<?xml version="1.0"?>
+
+<launch>
+
+  <!-- Arguments -->
+  <arg name="model" default="burger" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="x_pos" default="0.0"/>
+  <arg name="y_pos" default="0.0"/>
+  <arg name="z_pos" default="0.05"/>
+
+  <arg name="world" default="$(find turtlebot3_mogi)/worlds/dark_background.world"/>
+  <arg name="open_rviz" default="true"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3 -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
+
+  <!-- TurtleBot3 -->
+  <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch">
+    <arg name="model" value="$(arg model)" />
+  </include>
+
+  <!-- Launch trajectory server -->
+  <node pkg="hector_trajectory_server" type="hector_trajectory_server" respawn="false" name="hector_trajectory_server" output="screen">
+    <param name="source_frame_name" value="base_footprint"/>
+    <param name="target_frame_name" value="odom"/>
+  </node>
+
+  <!-- rviz -->
+  <group if="$(arg open_rviz)"> 
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find turtlebot3_mogi)/rviz/turtlebot3_line_follow.rviz"/>
+  </group>
+
+</launch>
+```
+
+> Vegyük észre, hogy használjuk a `hector_trajectory_server` csomagot, amit korábban a `sudo apt install ros-noetic-hector-trajectory-server` paranccsal telepítettünk.
+
 # Hagyományos képfeldolgozás
+
+
 
 ## Képfeldolgozó algoritmus és ROS node
 

@@ -904,9 +904,15 @@ rosrun turtlebot3_mogi line_follower.py
 
 ![alt text][image15] 
 
->Nézzük meg, hogy minden rendben működik-e a kézi távirányító segítségével.
->
->`rosrun teleop_twist_keyboard teleop_twist_keyboard.py`
+>Ha indítás után nem jelenne meg a kép, annak egy lehetséges oka az lehet, hogy nem érkezik semmi a `/camera/image/compressed` topicon, ez pedig azért lehet, mert nincs telepítve a `compressed-image-transport` csomag! Tegyétek fel apt-vel:
+>```bash
+>sudo apt install ros-noetic-compressed-image-transport
+>```
+
+Nézzük meg, hogy minden rendben működik-e a kézi távirányító segítségével.
+```bash
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+```
 
 ## Képfeldolgozó algoritmus
 
@@ -1240,6 +1246,17 @@ Ha felcimkéztük a tanítási mintákat, akkor a következő lépés a neuráli
 ```bash
 pip install tensorflow==2.9.2
 ```
+
+> Ha esetleg régebbi tensorflow-t frissítenétek, és a `2.9.2` telepítése után a következő hibával találkoznátok:
+>
+>```console
+>AttributeError: module 'numpy' has no attribute 'typeDict'
+>```
+> Akkor frissítsétek a `h5py` csomagot!
+>
+>```console
+>python3 -m pip install --upgrade h5py
+>```
 
 A modell tanításához hozzuk létre a `train_network.py` fájlt a `scripts` mappában, és tegyük futtathatóvá. Ez ugyan nem egy ROS node lesz, csak egy egyszerű Python script, de ettől függetlenül nyugodtan tárolhatjuk egy helyen a scripts mappában.
 

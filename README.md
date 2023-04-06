@@ -18,6 +18,14 @@
 [image16]: ./assets/opencv_2.png "OpenCV"
 [image17]: ./assets/opencv_3.png "OpenCV"
 [image18]: ./assets/opencv_4.png "OpenCV"
+[image19]: ./assets/save_images_1.png "Save image"
+[image20]: ./assets/save_images_2.png "Save image"
+[image21]: ./assets/save_images_3.png "Save image"
+[image22]: ./assets/cnn_1.png "CNN"
+[image23]: ./assets/cnn_2.png "CNN"
+[image24]: ./assets/cnn_3.png "CNN"
+[image25]: ./assets/red_1.png "Red line"
+[image26]: ./assets/red_2.png "Red line"
 
 # Kognitív robotika
 
@@ -32,9 +40,8 @@
 4. [Turtlebot MOGI](#Turtlebot-MOGI)  
 5. [Vonalkövetés](#Vonalkövetés)
 6. [Hagyományos képfeldolgozás](#Hagyományos-képfeldolgozás)
-7. [Képfeldolgozás a valódi roboton](#Képfeldolgozás-a-valódi-roboton)
-8. [Neurális háló](#Neurális-háló)
-9. [Neurális háló a valódi roboton](#Neurális-háló-a-valódi-roboton)
+7. [Neurális háló](#Neurális-háló)
+8. [Képfeldolgozás a valódi roboton](#Képfeldolgozás-a-valódi-roboton)
 
 # ROS alapok
 A Kognitív robotika (BMEGEMINMKR) labor anyaga jelentős részben támaszkodik a [Robotrendszerek (BMEGEMINMRL) tárgy anyagára](https://github.com/MOGI-ROS/Week-1-2-Introduction-to-ROS#mi-is-az-a-ros). Az itt található tananyag sokszor rövidített/egyszerűsített kivonata a Robotrendszerek tárgy anyagának, de ettől függetlenül, önálló tananyag és nem szükséges hozzá a Robotrendszerek tárgy ismerete. 
@@ -470,6 +477,10 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
 
 Vagy megnézhetjük a topic-okat és a kamera képét (ha van kamera a robotunkon) `rqt`-ben:
 ![alt text][image9]
+
+> A roboton a Ubiquity Robotics `raspicam_node`-ja fut, ami jpeg tömörített képet továbbít. Ez a Github-on itt érhető el a `noetic-devel` branchen:
+>
+> `https://github.com/UbiquityRobotics/raspicam_node/`
 
 De akár elindíthajuk a tértképezést is a roboton lévő lidar szenzor alapján:
 ```console
@@ -1069,128 +1080,628 @@ Módosítsuk tehát a képfeldolgozó algoritmusunk logikáját, és ne világos
 
 # Neurális háló
 
-## Neurális háló készítése
+A korábbi hagyományos képfeoldolgozással ellentétben, ebben a fejezetben egy klasszifikáló neurális hálót fogunk megtanítani a vonalkövetésre, ehhez pedig első lépésben tanítási mintákat fogunk felvenni. Ezek a minták 4 osztályba tartoznak majd:
+
+- A vonal a robot előtt van, előre megyünk
+- A vonal a robottól jobbra helyezkedik el és jobbra kell forduljunk egy íven
+- A vonal a robottól balra helyezkedik el és balra kell forduljunk egy íven
+- Nincs vonal a képen, a robotunk megáll
+
+A `turtlebot3_mogi` csomagban már szerepel pár tanítási minta a szimulációból a `training_images` mappában.
 
 ## Tanítási minták felvétele
 
-## Neurális háló tanítása
+A tanítási minták felvételéhez először is egy olyan node-ra lesz szükségünk, amivel képkockákat fogunk menteni a `saved_images` mappába 320x240 pixeles felbontásban, ezt használjuk majd a neurális hálónk tanításához. A robotot táviányítóval fogjuk több különböző helyre vezetni, ahol majd a képeket készítjük.
+
+A `save_training_images.py` node a korábbi képfeldolgozó keretprogramunkra épül, és mindössze annyit csinál, hogy a `space` vagy `s` billentyűk lenyomása esetén elmenti a 320x240 pixeles képet, a nevében az aktuális timestamp-pel.
+
+```python
+#!/usr/bin/env python3
+
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image, CompressedImage
+import rospy
+import rospkg
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+import threading
+from datetime import datetime
+
+class BufferQueue(Queue):
+    """Slight modification of the standard Queue that discards the oldest item
+    when adding an item and the queue is full.
+    """
+    def put(self, item, *args, **kwargs):
+        # The base implementation, for reference:
+        # https://github.com/python/cpython/blob/2.7/Lib/Queue.py#L107
+        # https://github.com/python/cpython/blob/3.8/Lib/queue.py#L121
+        with self.mutex:
+            if self.maxsize > 0 and self._qsize() == self.maxsize:
+                self._get()
+            self._put(item)
+            self.unfinished_tasks += 1
+            self.not_empty.notify()
+
+
+class cvThread(threading.Thread):
+    """
+    Thread that displays and processes the current image
+    It is its own thread so that all display can be done
+    in one thread to overcome imshow limitations and
+    https://github.com/ros-perception/image_pipeline/issues/85
+    """
+    def __init__(self, queue):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.image = None
+        
+
+    def run(self):
+        if withDisplay:
+            cv2.namedWindow("display", cv2.WINDOW_NORMAL)
+                
+        while True:
+            self.image = self.queue.get()
+
+            processedImage = self.processImage(self.image) # only resize
+
+            if withDisplay:
+                cv2.imshow("display", processedImage)
+                
+            k = cv2.waitKey(6) & 0xFF
+            if k in [27, ord('q')]: # 27 = ESC
+                rospy.signal_shutdown('Quit')
+            elif k in [32, ord('s')]: # 32 = Space
+                time_prefix = datetime.today().strftime('%Y%m%d-%H%M%S-%f')
+                file_name = save_path + time_prefix + ".jpg"
+                cv2.imwrite(file_name, processedImage)
+                print("File saved: %s" % file_name)
+
+    def processImage(self, img):
+
+        height, width = img.shape[:2]
+
+        if height != 240 or width != 320:
+            dim = (320, 240)
+            img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+        
+        return img
+
+
+def queueMonocular(msg):
+    try:
+        # Convert your ROS Image message to OpenCV2
+        #cv2Img = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8") # in case of non-compressed image stream only
+        cv2Img = bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    except CvBridgeError as e:
+        print(e)
+    else:
+        qMono.put(cv2Img)
+
+print("OpenCV version: %s" % cv2.__version__)
+
+queueSize = 1      
+qMono = BufferQueue(queueSize)
+
+bridge = CvBridge()
+    
+rospy.init_node('image_listener')
+
+withDisplay = bool(int(rospy.get_param('~with_display', 1)))
+rospack = rospkg.RosPack()
+path = rospack.get_path('turtlebot3_mogi')
+save_path = path + "/saved_images/"
+print("Saving files to: %s" % save_path)
+
+# Define your image topic
+image_topic = "/camera/image/compressed"
+# Set up your subscriber and define its callback
+rospy.Subscriber(image_topic, CompressedImage, queueMonocular)
+
+# Start image processing thread
+cvThreadHandle = cvThread(qMono)
+cvThreadHandle.setDaemon(True)
+cvThreadHandle.start()
+
+# Spin until ctrl + c
+rospy.spin()
+```
+
+Próbáljuk ki az új node-unkat (ne felejtsük futtathatóvá tenni a `chmod +x` paranccsal). Először indítsuk el a szimulációt:
+
+```bash
+roslaunch turtlebot3_mogi simulation_line_follow.launch
+```
+
+Majd indítsuk el az új node-unkat:
+
+```bash
+rosrun turtlebot3_mogi save_training_images.py
+```
+![alt text][image19] 
+
+Ha lenyomjuk a `space` vagy `s` billentyűket, akkor a következőt kell lássuk a terminálban:
+
+![alt text][image20] 
+
+A mentett képek pedig a `saved_images` mappában találhatók:
+
+![alt text][image21] 
+
+A következő lépés a mentett képek felcimkézése, amit ebben az esetben egyszerűen a `training_images` mappán belül tlálható 4 almappában való elhelyezéssel tudunk megoldani.
+
+## Neurális háló készítése
+
+Ha felcimkéztük a tanítási mintákat, akkor a következő lépés a neurális hálónk struktúrájának az elkészítése a tanításhoz használt python script elkészítése. A tárgy során a `Tensorflow` framework-öt használjuk, amit a Python beépített csomagkezelőjével tudunk a legegyszerűbben telepíteni. Ahhoz hogy a `turtlebot3_mogi` csomagban található, már előre betanított hálót ki tudjátok próbálni, érdemes ugyanazt a Tensorflow verziót telepíteni, mint amin a háló készült, ez a `2.9.2`. Ezt a verziót a következő paranccsal telepíthetitek:
+
+```bash
+pip install tensorflow==2.9.2
+```
+
+A modell tanításához hozzuk létre a `train_network.py` fájlt a `scripts` mappában, és tegyük futtathatóvá. Ez ugyan nem egy ROS node lesz, csak egy egyszerű Python script, de ettől függetlenül nyugodtan tárolhatjuk egy helyen a scripts mappában.
+
+A hálónk az egyszerűség kedvéért egy [LeNet-5](https://en.wikipedia.org/wiki/LeNet) *jellegű* háló lesz, aminek a bemenete egy 24x24 pixeles, 3 csatornás kép.
+
+> Azért "csak" LeNet-5 *jellegű* a háló, mert az eredtileg publikált háló struktúrához képest kisebb felbontású bemeneti képünk van, kevesebb neuron található a konvolúciós rétegekben, és kevesebb rétegű de nagyobb neuron számú a fully connected rész. Bátran kísérletezzetek saját háló struktúrákkal!
+
+```console
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (None, 24, 24, 20)        1520      
+                                                                 
+ activation (Activation)     (None, 24, 24, 20)        0         
+                                                                 
+ max_pooling2d (MaxPooling2D  (None, 12, 12, 20)       0         
+ )                                                               
+                                                                 
+ conv2d_1 (Conv2D)           (None, 12, 12, 50)        25050     
+                                                                 
+ activation_1 (Activation)   (None, 12, 12, 50)        0         
+                                                                 
+ max_pooling2d_1 (MaxPooling  (None, 6, 6, 50)         0         
+ 2D)                                                             
+                                                                 
+ flatten (Flatten)           (None, 1800)              0         
+                                                                 
+ dense (Dense)               (None, 500)               900500    
+                                                                 
+ activation_2 (Activation)   (None, 500)               0         
+                                                                 
+ dense_1 (Dense)             (None, 4)                 2004      
+                                                                 
+ activation_3 (Activation)   (None, 4)                 0         
+                                                                 
+=================================================================
+Total params: 929,074
+Trainable params: 929,074
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Ahogy látjátok még ez az egyszerű kis háló is közel 1'000'000 tanítandó paraméterrel rendelkezik, ezek nagyrésze természetesen nem a konvolúciós rétegekben, hanem a fully connected rétegben helyezkedik el. Egy CUDA-s GPU-val ennek a hálónak a tanítása néhány másodpercet vesz csak igénybe.
+
+> Összehasonlításként, a GPT-3 175 milliárd, a GPT-2 pedig 1.5 milliárd paraméterrel rendelkezik.
+
+A tanításra használt scriptünk tehát:
+
+```python
+# import the necessary packages
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Activation, Flatten, Dense, Conv2D, MaxPooling2D
+from tensorflow.keras.preprocessing.image import img_to_array
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras import __version__ as keras_version
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.random import set_seed
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
+from imutils import paths
+import numpy as np
+import random
+import cv2
+import os
+import matplotlib.pyplot as plt
+from numpy.random import seed
+
+# Set image size
+image_size = 24
+
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
+
+# Fix every random seed to make the training reproducible
+seed(1)
+set_seed(2)
+random.seed(42)
+
+print("[INFO] Version:")
+print("Tensorflow version: %s" % tf.__version__)
+keras_version = str(keras_version).encode('utf8')
+print("Keras version: %s" % keras_version)
+
+def build_LeNet(width, height, depth, classes):
+    # initialize the model
+    model = Sequential()
+    inputShape = (height, width, depth)
+
+    # first set of CONV => RELU => POOL layers
+    model.add(Conv2D(20, (5, 5), padding="same", input_shape=inputShape))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # second set of CONV => RELU => POOL layers
+    model.add(Conv2D(50, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # first (and only) set of FC => RELU layers
+    model.add(Flatten())
+    model.add(Dense(500))
+    model.add(Activation("relu"))
+
+    # softmax classifier
+    model.add(Dense(classes))
+    model.add(Activation("softmax"))
+
+    # return the constructed network architecture
+    return model
+
+    
+dataset = '..//training_images'
+# initialize the data and labels
+print("[INFO] loading images and labels...")
+data = []
+labels = []
+ 
+# grab the image paths and randomly shuffle them
+imagePaths = sorted(list(paths.list_images(dataset)))
+random.shuffle(imagePaths)
+# loop over the input images
+for imagePath in imagePaths:
+    # load the image, pre-process it, and store it in the data list
+    image = cv2.imread(imagePath)
+    image = cv2.resize(image, (image_size, image_size))
+    image = img_to_array(image)
+    data.append(image)
+    # extract the class label from the image path and update the
+    # labels list
+    label = imagePath.split(os.path.sep)[-2]
+    print("Image: %s, Label: %s" % (imagePath, label))
+    if label == 'forward':
+        label = 0
+    elif label == 'right':
+        label = 1
+    elif label == 'left':
+        label = 2
+    else:
+        label = 3
+    labels.append(label)
+    
+    
+# scale the raw pixel intensities to the range [0, 1]
+data = np.array(data, dtype="float") / 255.0
+labels = np.array(labels)
+ 
+# partition the data into training and testing splits using 75% of
+# the data for training and the remaining 25% for testing
+(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, random_state=42)# convert the labels from integers to vectors
+trainY = to_categorical(trainY, num_classes=4)
+testY = to_categorical(testY, num_classes=4)
+
+
+# initialize the number of epochs to train for, initial learning rate,
+# and batch size
+EPOCHS  = 40
+INIT_LR = 0.001
+DECAY   = INIT_LR / EPOCHS
+BS      = 32
+
+# initialize the model
+print("[INFO] compiling model...")
+model = build_LeNet(width=image_size, height=image_size, depth=3, classes=4)
+opt = Adam(learning_rate=INIT_LR, decay=DECAY)
+model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+ 
+# print model summary
+model.summary()
+
+# checkpoint the best model
+checkpoint_filepath = "..//network_model//model.best.h5"
+checkpoint = ModelCheckpoint(checkpoint_filepath, monitor = 'val_loss', verbose=1, save_best_only=True, mode='min')
+
+# set a learning rate annealer
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=3, verbose=1, factor=0.5, min_lr=1e-6)
+
+# callbacks
+callbacks_list=[reduce_lr, checkpoint]
+
+# train the network
+print("[INFO] training network...")
+history = model.fit(trainX, trainY, batch_size=BS, validation_data=(testX, testY), epochs=EPOCHS, callbacks=callbacks_list, verbose=1)
+ 
+# save the model to disk
+print("[INFO] serializing network...")
+model.save("..//network_model//model.h5")
+
+plt.xlabel('Epoch Number')
+plt.ylabel("Loss / Accuracy Magnitude")
+plt.plot(history.history['loss'], label="loss")
+plt.plot(history.history['accuracy'], label="acc")
+plt.plot(history.history['val_loss'], label="val_loss")
+plt.plot(history.history['val_accuracy'], label="val_acc")
+plt.legend()
+plt.savefig('model_training')
+plt.show()
+```
+
+A tanítás végén az eredményt grafikusan is láthatjuk, a loss csökken a `validációs` mintákon, az `accuracy` pedig nő a tanítás előrehaladtával.
+
+![alt text][image22] 
+
+A hálónk tanított modellje végül a `network_models` mappába kerül `model.h5` néven, azonban látunk itt egy másik fájlt is, a `model.best.h5`-öt. Ezt akkor menti a Tensorflow a fenti kódunk alapján, amikor egy epoch végén a modellünk, jobb, mint a korábbi volt. Így ha az utolsó epochban romlott is a modellünk pontossága, a *best* modell elérhető marad.
 
 ## Teszt sötét és világos háttéren
 
+A neurális hálónk próbájához már csak egy lépés hiányzik, egy olyan ROS node, ami a hagyományos képfeldolgozás helyett, a képkockát végigfuttatja az előbb tanított neurális hálón. Elsősorban tehát a `processImage` függvényünk fog változni, mielőtt a neurális háló megkapná a képkockát, természetesen ugyanazt az átméretezést illetve [0,1] tartományra konvertálást kell megtennünk, amit a tanítás során is alkalmaztunk.
+
+A `line_follower_cnn.py` tartalma:
+
+```python
+#!/usr/bin/env python3
+
+from tensorflow.keras.preprocessing.image import img_to_array
+from tensorflow.keras.models import load_model
+from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.keras import __version__ as keras_version
+import tensorflow as tf
+
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image, CompressedImage
+from geometry_msgs.msg import Twist
+import rospy
+import rospkg
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+import threading
+import numpy as np
+import h5py
+import time
+
+# Set image size
+image_size = 24
+
+# Initialize Tensorflow session
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
+
+# Initialize ROS node and get CNN model path
+rospy.init_node('line_follower')
+
+rospack = rospkg.RosPack()
+path = rospack.get_path('turtlebot3_mogi')
+model_path = path + "/network_model/model.best.h5"
+
+print("[INFO] Version:")
+print("OpenCV version: %s" % cv2.__version__)
+print("Tensorflow version: %s" % tf.__version__)
+keras_version = str(keras_version).encode('utf8')
+print("Keras version: %s" % keras_version)
+print("CNN model: %s" % model_path)
+f = h5py.File(model_path, mode='r')
+model_version = f.attrs.get('keras_version')
+print("Model's Keras version: %s" % model_version)
+
+if model_version != keras_version:
+    print('You are using Keras version ', keras_version, ', but the model was built using ', model_version)
+
+# Finally load model:
+model = load_model(model_path)
+
+class BufferQueue(Queue):
+    """Slight modification of the standard Queue that discards the oldest item
+    when adding an item and the queue is full.
+    """
+    def put(self, item, *args, **kwargs):
+        # The base implementation, for reference:
+        # https://github.com/python/cpython/blob/2.7/Lib/Queue.py#L107
+        # https://github.com/python/cpython/blob/3.8/Lib/queue.py#L121
+        with self.mutex:
+            if self.maxsize > 0 and self._qsize() == self.maxsize:
+                self._get()
+            self._put(item)
+            self.unfinished_tasks += 1
+            self.not_empty.notify()
+
+class cvThread(threading.Thread):
+    """
+    Thread that displays and processes the current image
+    It is its own thread so that all display can be done
+    in one thread to overcome imshow limitations and
+    https://github.com/ros-perception/image_pipeline/issues/85
+    """
+    def __init__(self, queue):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.image = None
+
+        # Initialize published Twist message
+        self.cmd_vel = Twist()
+        self.cmd_vel.linear.x = 0
+        self.cmd_vel.angular.z = 0
+        self.last_time = time.time()
+
+    def run(self):
+        # Create a single OpenCV window
+        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("frame", 800,600)
+
+        while True:
+            self.image = self.queue.get()
+
+            # Process the current image
+            mask = self.processImage(self.image)
+
+            # Add processed images as small images on top of main image
+            result = self.addSmallPictures(self.image, [mask])
+            cv2.imshow("frame", result)
+
+            # Check for 'q' key to exit
+            k = cv2.waitKey(1) & 0xFF
+            if k in [27, ord('q')]:
+                # Stop every motion
+                self.cmd_vel.linear.x = 0
+                self.cmd_vel.angular.z = 0
+                pub.publish(self.cmd_vel)
+                # Quit
+                rospy.signal_shutdown('Quit')
+
+    def processImage(self, img):
+
+        image = cv2.resize(img, (image_size, image_size))
+        image = img_to_array(image)
+        image = np.array(image, dtype="float") / 255.0
+
+        image = image.reshape(-1, image_size, image_size, 3)
+        
+        with tf.device('/gpu:0'):
+            prediction = np.argmax(model(image, training=False))
+                
+        print("Prediction %d, elapsed time %.3f" % (prediction, time.time()-self.last_time))
+        self.last_time = time.time()
+
+        if prediction == 0: # Forward
+            self.cmd_vel.angular.z = 0
+            self.cmd_vel.linear.x = 0.1
+        elif prediction == 1: # Left
+            self.cmd_vel.angular.z = -0.2
+            self.cmd_vel.linear.x = 0.05
+        elif prediction == 2: # Right
+            self.cmd_vel.angular.z = 0.2
+            self.cmd_vel.linear.x = 0.05
+        else: # Nothing
+            self.cmd_vel.angular.z = 0.1
+            self.cmd_vel.linear.x = 0.0
+
+        # Publish cmd_vel
+        pub.publish(self.cmd_vel)
+        
+        # Return processed frames
+        return cv2.resize(img, (image_size, image_size))
+
+    # Add small images to the top row of the main image
+    def addSmallPictures(self, img, small_images, size=(160, 120)):
+        x_base_offset = 40
+        y_base_offset = 10
+
+        x_offset = x_base_offset
+        y_offset = y_base_offset
+
+        for small in small_images:
+            small = cv2.resize(small, size)
+            if len(small.shape) == 2:
+                small = np.dstack((small, small, small))
+
+            img[y_offset: y_offset + size[1], x_offset: x_offset + size[0]] = small
+
+            x_offset += size[0] + x_base_offset
+
+        return img
+
+def queueMonocular(msg):
+    try:
+        # Convert your ROS Image message to OpenCV2
+        #cv2Img = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8") # in case of non-compressed image stream only
+        cv2Img = bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    except CvBridgeError as e:
+        print(e)
+    else:
+        qMono.put(cv2Img)
+
+
+queueSize = 1      
+qMono = BufferQueue(queueSize)
+
+bridge = CvBridge()
+
+# Define your image topic
+image_topic = "/camera/image/compressed"
+# Set up your subscriber and define its callback
+rospy.Subscriber(image_topic, CompressedImage, queueMonocular)
+
+pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+
+# Start image processing thread
+cvThreadHandle = cvThread(qMono)
+cvThreadHandle.setDaemon(True)
+cvThreadHandle.start()
+
+# Spin until Ctrl+C
+rospy.spin()
+```
+
+Próbáljuk is ki a hálót! Először indítsuk el a szimulációt:
+
+```bash
+roslaunch turtlebot3_mogi simulation_line_follow.launch
+```
+
+Majd indítsuk el az új node-unkat:
+
+```bash
+rosrun turtlebot3_mogi line_follower_cnn.py
+```
+
+![alt text][image23] 
+
+Mivel a tanítási minták között már szerepelnek képek sötét és világos háttérről egyaránt, így a hálónk már megtanulta vezetni a robotot mindkét környezetben, próbáljuk is ki világos háttéren:
+
+![alt text][image24] 
+
+Természetesen ezen a pályán is kiválóan vezeti a robotunkat.
+
 ## Teszt piros-zöld környezetben
 
-# Teszt a valódi roboton
+Próbáljunk azonban ki egy merőben más környezetet, ehhez előkészítettem egy világot, ahol zöld háttéren piros vonallal kell elboldogulnunk. Ilyen tanítási mintával sosem találkozott a neurális hálónk, azonban ha kellően generalizált lett a modellünk, akkor az eltérő színek ellenére is el fog boldogulni a vonallal.
 
-## SD kártya image, beállítások a roboton, GIT repo
+Írjuk át a `simulation_line_follow.launch` fájlban a világot `red_line.world`-re, és először próbáljuk ki a hagyományos képfeldolgozáson alapuló node-unkat!
+
+```bash
+rosrun turtlebot3_mogi line_follower.py
+```
+
+![alt text][image25] 
+
+Természetesen a hagyományos képfeldolgozó node-unk képtelen megbírkózni ezzel a környezettel, hiszen a piros vonal és a zöld háttér lightness értéke is hasonló HLS színrendszerben. Módosítanunk kéne az algoritmus, hogy a HLS színrendszer hue értéke szerint próbáljuk megtalálni a vonalat.
+
+Nézzük azonban, hogy boldogul a neurális hálónk:
+
+```bash
+rosrun turtlebot3_mogi line_follower_cnn.py
+```
+
+![alt text][image26] 
+
+Annak ellenére, hogy a tanítás során sosem találkoztunk ilyen környezettel, a neurális hálónk elég generalizált, hogy felismerje és kövesse a vonalat ismeretlen környezetben is!
+
+# Képfeldolgozás a valódi roboton
 
 ## Hagyományos képfeldolgozás
 
 ## Neurális háló
 
-
-
-
-roslaunch turtlebot3_mogi simulation_line_follow.launch
-rosrun turtlebot3_mogi line_follower_cnn.py
-
-
-
-
-roslaunch turtlebot3_gazebo turtlebot3_house.launch
-roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
-roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
-rosrun teleop_twist_keyboard teleop_twist_keyboard.py
-
-rosrun map_server map_saver -f ~/map
-
-
-
-
-
-4. óra
-- vonalkövetés pálya blender
-- turtlebot vonalkövetés szimuláció
-
-5. óra
-- turtlebot képfeldolgozással vonalkövetés
-
-6. óra
-- neurális háló vonalkövetés szimuláció
-
-7. óra
-- turtlebot neurális háló vonalkövetés
-
-
-
-Vonalkövető pálya blenderben, poz és negatív színnel
-Vonalkövetés hagyományos algoritmussal poz és neg
-Vonalkövetés tanulóminták készítése
-Tanítás tensorflowban
-Kipróbálás gazeboban és valódi roboton
-
-Robotrdsz:
-Átnézni a launchokat közösen
-Kéne saját launch file, odom vizualizáció
-Kamera plugin
-Kavirnyálás a house pályán
-Navigációs stack felélesztése
-Minden a valódi roboton is
-
-
-
-ssh ubuntu@192.168.1.45
-export TURTLEBOT3_MODEL=burger
-roslaunch turtlebot3_bringup turtlebot3_robot.launch
-
-
-SD image:
-edit sudo nano /etc/hostname
-ubuntu@ubuntu
-
-
-ROBOT .bashrc:
-```bash
-# ROS Stuff
-source /opt/ros/noetic/setup.bash
-source ~/catkin_ws/devel/setup.bash
-
-# Automatic ROS IP config
-IP_ADDRESSES=$(hostname -I | sed 's/ *$//g')
-IP_ARRAY=($IP_ADDRESSES)
-FIRST_IP=${IP_ARRAY[0]}
-
-if [ "$FIRST_IP" != "" ];
-then
-    true
-    #echo "There are IP addresses!"
-else
-    echo "Warning FIRST_IP var was empty:" $FIRST_IP
-    echo "Maybe client is not connected to any network?"
-    FIRST_IP=127.0.0.1
-fi
-
-export ROS_MASTER_URI=http://$FIRST_IP:11311
-export ROS_IP=$FIRST_IP
-
-echo "=============== NETWORK DETAILS ================="
-echo ACTIVE IP ADDRESSES: $IP_ADDRESSES
-echo SELECTED IP ADDRESS: $FIRST_IP
-
-echo "============== ROS NETWORK CONFIG ==============="
-echo export ROS_MASTER_URI=$ROS_MASTER_URI
-echo export ROS_IP=$ROS_IP
-echo "================================================="
-
-# Turtlebot 3 config
-export TURTLEBOT3_MODEL=burger
-export LDS_MODEL=LDS-01
-```
-
-roboton:
-https://github.com/UbiquityRobotics/raspicam_node/ - noetic-devel
-
-
-/bin/bash -lixc exit 2>&1 | sed -n 's/^+* \(source\|\.\) //p' | grep ws
 
 
 

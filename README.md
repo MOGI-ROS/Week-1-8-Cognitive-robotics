@@ -1233,6 +1233,24 @@ Ha lenyomjuk a `space` vagy `s` billentyűket, akkor a következőt kell lássuk
 
 ![alt text][image20] 
 
+> WSL esetén gyakran előfordul - pl ha sleepben volt a gép futó WSL mellett -, hogy a Linuxos timestampek nem stimmelnek a rendszer idejével. A WSL-ben futó Linux idejét megnézhetjük a `date` paranccsal.
+> ```bash
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 07:14:39 AM CEST
+> ```
+> Ha a WSL-ben futó Linux ideje eltér a rendszer idejétől, akkor a `sudo hwclock -s` paranccsal szinkronizálhatjuk a rendszerhez.
+>
+> Ha ez sem oldaná meg a problémát, akkor a `sudo ntpdate pool.ntp.org` parancsot javaslom még, ehhez azonban előtte telepítenünk kell a `ntpdate` csomagot apt-vel.
+> ```bash
+> david@DavidsLenovoX1:~$ sudo hwclock -s
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 12:49:56 PM CEST
+> david@DavidsLenovoX1:~$ sudo ntpdate pool.ntp.org
+> 1 May 17:14:38 ntpdate[1129]: step time server 193.33.30.39 offset 15778.707357 sec
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 05:14:40 PM CEST
+> ```
+
 A mentett képek pedig a `saved_images` mappában találhatók:
 
 ![alt text][image21] 

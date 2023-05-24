@@ -904,9 +904,15 @@ rosrun turtlebot3_mogi line_follower.py
 
 ![alt text][image15] 
 
->Nézzük meg, hogy minden rendben működik-e a kézi távirányító segítségével.
->
->`rosrun teleop_twist_keyboard teleop_twist_keyboard.py`
+>Ha indítás után nem jelenne meg a kép, annak egy lehetséges oka az lehet, hogy nem érkezik semmi a `/camera/image/compressed` topicon, ez pedig azért lehet, mert nincs telepítve a `compressed-image-transport` csomag! Tegyétek fel apt-vel:
+>```bash
+>sudo apt install ros-noetic-compressed-image-transport
+>```
+
+Nézzük meg, hogy minden rendben működik-e a kézi távirányító segítségével.
+```bash
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+```
 
 ## Képfeldolgozó algoritmus
 
@@ -1227,6 +1233,24 @@ Ha lenyomjuk a `space` vagy `s` billentyűket, akkor a következőt kell lássuk
 
 ![alt text][image20] 
 
+> WSL esetén gyakran előfordul - pl ha sleepben volt a gép futó WSL mellett -, hogy a Linuxos timestampek nem stimmelnek a rendszer idejével. A WSL-ben futó Linux idejét megnézhetjük a `date` paranccsal.
+> ```bash
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 07:14:39 AM CEST
+> ```
+> Ha a WSL-ben futó Linux ideje eltér a rendszer idejétől, akkor a `sudo hwclock -s` paranccsal szinkronizálhatjuk a rendszerhez.
+>
+> Ha ez sem oldaná meg a problémát, akkor a `sudo ntpdate pool.ntp.org` parancsot javaslom még, ehhez azonban előtte telepítenünk kell a `ntpdate` csomagot apt-vel.
+> ```bash
+> david@DavidsLenovoX1:~$ sudo hwclock -s
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 12:49:56 PM CEST
+> david@DavidsLenovoX1:~$ sudo ntpdate pool.ntp.org
+> 1 May 17:14:38 ntpdate[1129]: step time server 193.33.30.39 offset 15778.707357 sec
+> david@DavidsLenovoX1:~$ date
+> Mon 01 May 2023 05:14:40 PM CEST
+> ```
+
 A mentett képek pedig a `saved_images` mappában találhatók:
 
 ![alt text][image21] 
@@ -1240,6 +1264,17 @@ Ha felcimkéztük a tanítási mintákat, akkor a következő lépés a neuráli
 ```bash
 pip install tensorflow==2.9.2
 ```
+
+> Ha esetleg régebbi tensorflow-t frissítenétek, és a `2.9.2` telepítése után a következő hibával találkoznátok:
+>
+>```console
+>AttributeError: module 'numpy' has no attribute 'typeDict'
+>```
+> Akkor frissítsétek a `h5py` csomagot!
+>
+>```console
+>python3 -m pip install --upgrade h5py
+>```
 
 A modell tanításához hozzuk létre a `train_network.py` fájlt a `scripts` mappában, és tegyük futtathatóvá. Ez ugyan nem egy ROS node lesz, csak egy egyszerű Python script, de ettől függetlenül nyugodtan tárolhatjuk egy helyen a scripts mappában.
 

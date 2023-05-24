@@ -4,13 +4,13 @@ from tensorflow.keras.layers import Activation, Flatten, Dense, Conv2D, MaxPooli
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.utils import to_categorical
 from tensorflow.keras import __version__ as keras_version
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.random import set_seed
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from keras.utils import to_categorical
 from imutils import paths
 import numpy as np
 import random

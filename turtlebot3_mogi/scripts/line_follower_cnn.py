@@ -146,13 +146,6 @@ class cvThread(threading.Thread):
 
     # Add small images to the top row of the main image
     def addSmallPictures(self, img, small_images, size=(160, 120)):
-        '''
-        :param img: main image
-        :param small_images: array of small images
-        :param size: size of small images
-        :return: overlayed image
-        '''
-
         x_base_offset = 40
         y_base_offset = 10
 
@@ -185,7 +178,6 @@ queueSize = 1
 qMono = BufferQueue(queueSize)
 
 bridge = CvBridge()
-
 
 # Define your image topic
 image_topic = "/camera/image/compressed"

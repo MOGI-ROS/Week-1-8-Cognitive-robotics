@@ -46,18 +46,19 @@ class cvThread(threading.Thread):
 
     def run(self):
         # Create a single OpenCV window
-        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("frame", 800,600)
+        #cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        #cv2.resizeWindow("frame", 800,600)
 
         while True:
             self.image = self.queue.get()
 
             # Process the current image
-            mask, contour, crosshair = self.processImage(self.image)
+            #mask, contour, crosshair = self.processImage(self.image)
+            self.processImage(self.image)
 
             # Add processed images as small images on top of main image
-            result = self.addSmallPictures(self.image, [mask, contour, crosshair])
-            cv2.imshow("frame", result)
+            #result = self.addSmallPictures(self.image, [mask, contour, crosshair])
+            #cv2.imshow("frame", result)
 
             # Check for 'q' key to exit
             k = cv2.waitKey(6) & 0xFF
@@ -94,7 +95,7 @@ class cvThread(threading.Thread):
         (contours,hierarchy) = cv2.findContours(lightnessMask.copy(), 1, cv2.CHAIN_APPROX_NONE)
 
         # overlay mask on lightness image to show masked area on the small picture
-        lightnessMask = cv2.addWeighted(mask,0.2,lightnessMask,0.8,0)
+        #lightnessMask = cv2.addWeighted(mask,0.2,lightnessMask,0.8,0)
 
         # Find the biggest contour (if detected)
         if len(contours) > 0:
@@ -110,14 +111,14 @@ class cvThread(threading.Thread):
                 cx, cy = 0, 0
 
             # Show contour and centroid
-            cv2.drawContours(contourMask, biggest_contour, -1, (0,255,0), 10)
-            cv2.circle(contourMask, (cx, cy), 20, (0, 0, 255), -1)
+            #cv2.drawContours(contourMask, biggest_contour, -1, (0,255,0), 10)
+            #cv2.circle(contourMask, (cx, cy), 20, (0, 0, 255), -1)
 
 
             # Show crosshair and difference from middle point
-            cv2.line(crosshairMask,(cx,0),(cx,rows),(0,0,255),10)
-            cv2.line(crosshairMask,(0,cy),(cols,cy),(0,0,255),10)
-            cv2.line(crosshairMask,(int(cols/2),0),(int(cols/2),rows),(255,0,0),10)
+            #cv2.line(crosshairMask,(cx,0),(cx,rows),(0,0,255),10)
+            #cv2.line(crosshairMask,(0,cy),(cols,cy),(0,0,255),10)
+            #cv2.line(crosshairMask,(int(cols/2),0),(int(cols/2),rows),(255,0,0),10)
 
             # Chase the ball
             #print(abs(cols - cx), cx, cols)
@@ -140,7 +141,7 @@ class cvThread(threading.Thread):
         pub.publish(self.cmd_vel)
 
         # Return processed frames
-        return lightnessMask, contourMask, crosshairMask
+        #return lightnessMask, contourMask, crosshairMask
 
     # convert to HLS color space
     def convert2hls(self, img):

@@ -7,7 +7,6 @@ from tensorflow.compat.v1 import ConfigProto
 from tensorflow.keras import __version__ as keras_version
 import tensorflow as tf
 
-import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, CompressedImage
 from geometry_msgs.msg import Twist
@@ -21,6 +20,11 @@ import threading
 import numpy as np
 import h5py
 import time
+
+# Import OpenCV only here to avoid issues with low RAM of Raspberry Pi and libgomp
+# see also the .bashrc file
+# export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+import cv2
 
 # Set image size
 image_size = 24
@@ -88,18 +92,19 @@ class cvThread(threading.Thread):
 
     def run(self):
         # Create a single OpenCV window
-        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("frame", 800,600)
+        #cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        #cv2.resizeWindow("frame", 800,600)
 
         while True:
             self.image = self.queue.get()
 
             # Process the current image
-            mask = self.processImage(self.image)
+            #mask = self.processImage(self.image)
+            self.processImage(self.image)
 
             # Add processed images as small images on top of main image
-            result = self.addSmallPictures(self.image, [mask])
-            cv2.imshow("frame", result)
+            #result = self.addSmallPictures(self.image, [mask])
+            #cv2.imshow("frame", result)
 
             # Check for 'q' key to exit
             k = cv2.waitKey(1) & 0xFF
@@ -142,7 +147,7 @@ class cvThread(threading.Thread):
         pub.publish(self.cmd_vel)
         
         # Return processed frames
-        return cv2.resize(img, (image_size, image_size))
+        #return cv2.resize(img, (image_size, image_size))
 
     # Add small images to the top row of the main image
     def addSmallPictures(self, img, small_images, size=(160, 120)):

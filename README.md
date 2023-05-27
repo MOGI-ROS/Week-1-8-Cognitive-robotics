@@ -488,6 +488,15 @@ roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
 ```
 ![alt text][image10]
 
+> A roboton előre telepítve van OpenCV és tensorflow is, de ha bármi egyébre szükség lenne, akkor jól jöhet ideiglenesen SWAP memória hozzáadása a kevés RAM miatt. Ezt bármikor megtehetjük a következő parancsokkal:
+> ```console
+> sudo fallocate -l 1G /swapfile
+> sudo chmod 600 /swapfile
+> sudo mkswap /swapfile
+> sudo swapon /swapfile
+>```  
+
+
 # Turtlebot MOGI
 
 A tárgy további részében a saját `turtlebot3-mogi` csomagunkkal fogunk dolgozni, de előtte még egy pár módosítást végre kell hajtanunk a gyári `turtlebot3` csomagon is. Emlékezzünk rá, hogy épp emiatt nem a hivatalos `turtlebot3` csomagot töltötük le GIT-ből, hanem a MOGI-s verziót!

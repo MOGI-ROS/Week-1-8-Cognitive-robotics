@@ -412,7 +412,7 @@ Ahhoz, hogy egyszerűen ki tudjuk próbálni az itt tanultakat a valódi roboton
 * beállított és lefordított catkin workspace, ami a Raspberry kamerát is támogatja
 * beállított SMB server, hogy könnyen hozzá tudjunk férni a fájlokhoz a roboton hálózaton keresztül
 
->SD kártya image: [Link a Google drive-ra](https://drive.google.com/file/d/19eiNYBjvwrmzaS9EkkhA9jJw_dw-v1pL/view?usp=sharing)
+>SD kártya image: [Link a Google drive-ra](https://drive.google.com/file/d/1eRsXZBJ5aK-D5p_k__fdueVtwOIgkSTY/view?usp=share_link)
 
 Miután az image-et kiírtuk a kártyára keressünk egy HDMI monitort és egy USB-s billentyűzetet, hogy beállítsuk a Wifi-t és a robot host nevét a hálózaton, utána nem lesz többet szükségünk sem monitorra sem billentyűzetre.
 

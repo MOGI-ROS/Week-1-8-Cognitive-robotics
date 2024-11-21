@@ -11,6 +11,7 @@ def generate_launch_description():
 
     pkg_turtlebot3_mogi = get_package_share_directory('turtlebot3_mogi')
     pkg_turtlebot3_gazebo = get_package_share_directory('turtlebot3_gazebo')
+    pkg_turtlebot3_cartographer = get_package_share_directory('turtlebot3_cartographer')
 
     #gazebo_models_path, ignore_last_dir = os.path.split(pkg_turtlebot3_mogi)
     #os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
@@ -99,6 +100,16 @@ def generate_launch_description():
         output='screen',
     )
 
+    cartographer_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_turtlebot3_cartographer, 'launch', 'cartographer.launch.py'),
+        ),
+        launch_arguments={
+        'start_rviz': 'false',
+        'use_sim': 'true'
+        }.items()
+    )
+
     launchDescriptionObject = LaunchDescription()
 
     launchDescriptionObject.add_action(rviz_launch_arg)
@@ -111,5 +122,6 @@ def generate_launch_description():
     launchDescriptionObject.add_action(rviz_node)
     launchDescriptionObject.add_action(trajectory_node)
     launchDescriptionObject.add_action(interactive_marker_twist_server_node)
+    launchDescriptionObject.add_action(cartographer_launch)
 
     return launchDescriptionObject

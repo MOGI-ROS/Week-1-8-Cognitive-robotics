@@ -13,9 +13,6 @@ def generate_launch_description():
     pkg_turtlebot3_gazebo = get_package_share_directory('turtlebot3_gazebo')
     pkg_turtlebot3_cartographer = get_package_share_directory('turtlebot3_cartographer')
 
-    #gazebo_models_path, ignore_last_dir = os.path.split(pkg_turtlebot3_mogi)
-    #os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
-
     rviz_launch_arg = DeclareLaunchArgument(
         'rviz', default_value='true',
         description='Open RViz'
@@ -27,17 +24,17 @@ def generate_launch_description():
     )
 
     x_arg = DeclareLaunchArgument(
-        'x', default_value='2.5',
+        'x', default_value='-2.0',
         description='x coordinate of spawned robot'
     )
 
     y_arg = DeclareLaunchArgument(
-        'y', default_value='1.5',
+        'y', default_value='1.0',
         description='y coordinate of spawned robot'
     )
 
     yaw_arg = DeclareLaunchArgument(
-        'yaw', default_value='-1.5707',
+        'yaw', default_value='0.0',
         description='yaw angle of spawned robot'
     )
 
@@ -53,25 +50,14 @@ def generate_launch_description():
         'linear.yaml'
     )
 
-    slam_toolbox_params_path = os.path.join(
-        get_package_share_directory('bme_ros2_navigation'),
-        'config',
-        'slam_toolbox.yaml'
-    )
-
-    map_file = os.path.join(
-        get_package_share_directory('bme_ros2_navigation'),
-        'maps',
-        'map.txt'
-    )
-
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_turtlebot3_gazebo, 'launch', 'turtlebot3_house.launch.py'),
         ),
         launch_arguments={
-        #TODO: add spawn coordinates
-        #'world': LaunchConfiguration('world'),
+        'x_pose': LaunchConfiguration('x'),
+        'y_pose': LaunchConfiguration('y'),
+        'yaw_angle': LaunchConfiguration('yaw'),
         }.items()
     )
 
@@ -109,6 +95,8 @@ def generate_launch_description():
         'use_sim': 'true'
         }.items()
     )
+
+    
 
     launchDescriptionObject = LaunchDescription()
 

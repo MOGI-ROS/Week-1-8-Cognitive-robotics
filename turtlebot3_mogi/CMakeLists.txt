@@ -26,6 +26,9 @@ endif()
 install(DIRECTORY
   launch
   rviz
+  maps
+  worlds
+  gazebo_models
   DESTINATION share/${PROJECT_NAME}
 )
 

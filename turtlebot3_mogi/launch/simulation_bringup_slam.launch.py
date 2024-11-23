@@ -121,7 +121,7 @@ def generate_launch_description():
     launchDescriptionObject.add_action(gazebo_launch)
     launchDescriptionObject.add_action(rviz_node)
     launchDescriptionObject.add_action(trajectory_node)
-    launchDescriptionObject.add_action(interactive_marker_twist_server_node)
+    #launchDescriptionObject.add_action(interactive_marker_twist_server_node)
     launchDescriptionObject.add_action(cartographer_launch)
 
     return launchDescriptionObject

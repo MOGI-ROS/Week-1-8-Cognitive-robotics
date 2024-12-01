@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage, Image
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Twist
 import cv2
@@ -11,10 +11,19 @@ class ImageSubscriber(Node):
     def __init__(self):
         super().__init__('image_subscriber')
         
+        '''
         # Create a subscriber with a queue size of 1 to only keep the last frame
         self.subscription = self.create_subscription(
             Image,
-            'camera/image_raw',  # Replace with your topic name
+            'image_raw',  # Replace with your topic name
+            self.image_callback,
+            1  # Queue size of 1
+        )
+        '''
+
+        self.subscription = self.create_subscription(
+            CompressedImage,
+            'image_raw/compressed',  # Replace with your topic name
             self.image_callback,
             1  # Queue size of 1
         )
@@ -44,7 +53,8 @@ class ImageSubscriber(Node):
         """Callback function to receive and store the latest frame."""
         # Convert ROS Image message to OpenCV format and store it
         with self.frame_lock:
-            self.latest_frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            #self.latest_frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.latest_frame = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
     def display_image(self):
 

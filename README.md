@@ -43,3 +43,7 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 Navigation:
 ros2 launch turtlebot3_navigation2 navigation2_use_sim_time.launch.py map_yaml_file:=/home/david/ros2_ws/src/Week-1-8-Cognitive-robotics/turtlebot3_mogi/maps/map.yaml
+
+
+start on real robot:
+ros2 launch turtlebot3_bringup hardware.launch.py

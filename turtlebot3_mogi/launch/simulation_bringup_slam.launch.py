@@ -12,6 +12,7 @@ def generate_launch_description():
     pkg_turtlebot3_mogi = get_package_share_directory('turtlebot3_mogi')
     pkg_turtlebot3_gazebo = get_package_share_directory('turtlebot3_gazebo')
     pkg_turtlebot3_cartographer = get_package_share_directory('turtlebot3_cartographer')
+    pkg_turtlebot3_slam_toolbox = get_package_share_directory('turtlebot3_slam_toolbox')
 
     rviz_launch_arg = DeclareLaunchArgument(
         'rviz', default_value='true',
@@ -76,6 +77,8 @@ def generate_launch_description():
         package='mogi_trajectory_server',
         executable='mogi_trajectory_server',
         name='mogi_trajectory_server',
+        parameters=[{'frame_id': 'odom'},
+                    {'odometry_topic': 'odom'}]
     )
 
     interactive_marker_twist_server_node = Node(
@@ -96,6 +99,15 @@ def generate_launch_description():
         }.items()
     )
 
+    slam_toolbox_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_turtlebot3_slam_toolbox, 'launch', 'slam_toolbox.launch.py'),
+        ),
+        launch_arguments={
+        'start_rviz': 'false',
+        'use_sim': 'true'
+        }.items()
+    )
     
 
     launchDescriptionObject = LaunchDescription()
@@ -110,6 +122,7 @@ def generate_launch_description():
     launchDescriptionObject.add_action(rviz_node)
     launchDescriptionObject.add_action(trajectory_node)
     #launchDescriptionObject.add_action(interactive_marker_twist_server_node)
-    launchDescriptionObject.add_action(cartographer_launch)
+    #launchDescriptionObject.add_action(cartographer_launch)
+    launchDescriptionObject.add_action(slam_toolbox_launch)
 
     return launchDescriptionObject

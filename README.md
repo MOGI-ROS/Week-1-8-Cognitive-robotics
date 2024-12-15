@@ -47,3 +47,32 @@ ros2 launch turtlebot3_navigation2 navigation2_use_sim_time.launch.py map_yaml_f
 
 start on real robot:
 ros2 launch turtlebot3_bringup hardware.launch.py
+
+
+Python environment:
+sudo apt install python3-pip
+sudo apt install pipx
+pipx ensurepath
+pipx install virtualenv
+pipx install virtualenvwrapper
+
+.bashrc
+
+replace (created by pipx ensurepath)
+# Created by `pipx` on 2024-12-15 20:49:03
+export PATH="$PATH:/home/david/.local/bin"
+
+# Virtual environment for pipx and  tensorflow
+export PATH="$PATH:/home/$USER/.local/bin"
+export WORKON_HOME=~/.virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/home/$USER/.local/share/pipx/venvs/virtu>
+source /home/$USER/.local/share/pipx/venvs/virtualenvwrapper/bin/virtuale>
+workon tf
+
+ERROR: Environment 'tf' does not exist. Create it with 'mkvirtualenv tf'.
+
+mkvirtualenv tf
+
+(tf) david@david-ubuntu24:~$ 
+pip install tensorflow
+

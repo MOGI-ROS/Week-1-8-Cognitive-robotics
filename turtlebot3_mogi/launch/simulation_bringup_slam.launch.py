@@ -77,8 +77,7 @@ def generate_launch_description():
         package='mogi_trajectory_server',
         executable='mogi_trajectory_server',
         name='mogi_trajectory_server',
-        parameters=[{'frame_id': 'odom'},
-                    {'odometry_topic': 'odom'}]
+        parameters=[{'reference_frame_id': 'map'}]
     )
 
     interactive_marker_twist_server_node = Node(

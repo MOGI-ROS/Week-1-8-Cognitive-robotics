@@ -73,6 +73,7 @@ def generate_launch_description():
         package='mogi_trajectory_server',
         executable='mogi_trajectory_server',
         name='mogi_trajectory_server',
+        parameters=[{'reference_frame_id': 'map'}]
     )
 
     # Relay node to republish camera_info to image_raw/camera_info

@@ -93,6 +93,7 @@ def generate_launch_description():
         package='mogi_trajectory_server',
         executable='mogi_trajectory_server',
         name='mogi_trajectory_server',
+        parameters=[{'reference_frame_id': 'map'}]
     )
 
     localization_launch = IncludeLaunchDescription(

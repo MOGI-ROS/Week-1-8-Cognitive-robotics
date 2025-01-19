@@ -12,6 +12,7 @@ def generate_launch_description():
     pkg_turtlebot3_mogi = get_package_share_directory('turtlebot3_mogi')
     pkg_turtlebot3_description = get_package_share_directory('turtlebot3_description')
     pkg_turtlebot3_cartographer = get_package_share_directory('turtlebot3_cartographer')
+    pkg_turtlebot3_slam_toolbox = get_package_share_directory('turtlebot3_slam_toolbox')
 
     gazebo_models_path, ignore_last_dir = os.path.split(pkg_turtlebot3_description)
     os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
@@ -98,6 +99,16 @@ def generate_launch_description():
         }.items()
     )
 
+    slam_toolbox_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_turtlebot3_slam_toolbox, 'launch', 'slam_toolbox.launch.py'),
+        ),
+        launch_arguments={
+        'start_rviz': 'false',
+        'use_sim': 'true'
+        }.items()
+    )
+
     navigation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_navigation_launch_path),
         launch_arguments={
@@ -115,7 +126,8 @@ def generate_launch_description():
     launchDescriptionObject.add_action(interactive_marker_twist_server_node)
     launchDescriptionObject.add_action(trajectory_node)
     launchDescriptionObject.add_action(relay_camera_info_node)
-    launchDescriptionObject.add_action(cartographer_launch)
+    #launchDescriptionObject.add_action(cartographer_launch)
+    launchDescriptionObject.add_action(slam_toolbox_launch)
     launchDescriptionObject.add_action(navigation_launch)
 
     return launchDescriptionObject

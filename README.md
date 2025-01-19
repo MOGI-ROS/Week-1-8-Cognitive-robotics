@@ -14,6 +14,11 @@
 [image12]: ./assets/gazebo.png "Shapes.sdf"
 [image13]: ./assets/gazebo-1.png "Gazebo GUI"
 [image14]: ./assets/gazebo-2.png "Gazebo models"
+[image15]: ./assets/turtlebot.png "Turtlebot"
+[image16]: ./assets/turtlebot-1.png "Turtlebot"
+[image17]: ./assets/turtlebot-2.png "Turtlebot"
+[image18]: ./assets/slam.png "SLAM"
+[image19]: ./assets/navigation.png "Navigation"
 
 # Week 1-8: Cognitive robotics
 
@@ -892,22 +897,19 @@ After setting up the offline model library let's open the `empty.sdf` in Gazebo 
 
 # Turtlebot3 simulation
 
-Dependencies
+In this lesson we'll use [the simulated and the real Turtlebot3 robot](https://emanual.robotis.com/docs/en/platform/turtlebot3/overview/) in `burger` configuration. Turtlebot3 is not supported anymore with the latest ROS2 and Gazebo distributions, but we maintain our own packages to ensure compatibility.
 
+Let's download the following GitHub repositories with the right branch (using the `-b branch` flag) to our colcon workspace:
+
+```bash
+git clone -b ros2 https://github.com/MOGI-ROS/turtlebot3_msgs
+git clone -b mogi-ros2 https://github.com/MOGI-ROS/turtlebot3
+git clone -b new_gazebo https://github.com/MOGI-ROS/turtlebot3_simulations
+```
+
+We'll need to install a couple of other dependencies with `apt`:
+```bash
 sudo apt install ros-jazzy-dynamixel-sdk
-
-https://github.com/MOGI-ROS/DynamixelSDK/tree/humble-devel
-https://github.com/MOGI-ROS/turtlebot3_msgs/tree/ros2
-https://github.com/MOGI-ROS/turtlebot3/tree/mogi-ros2
-https://github.com/MOGI-ROS/turtlebot3_simulations/tree/new_gazebo
-
-
-
-Dynamixel SDK if problem with module em uninstall existing em and install this version
-pip install empy==3.3.4
-https://github.com/ros2/rosidl/issues/779
-pip install lark
-
 sudo apt install ros-jazzy-hardware-interface
 sudo apt install ros-jazzy-nav2-msgs
 sudo apt install ros-jazzy-nav2-costmap-2d
@@ -916,24 +918,64 @@ sudo apt install ros-jazzy-nav2-bt-navigator
 sudo apt install ros-jazzy-nav2-bringup
 sudo apt install ros-jazzy-interactive-marker-twist-server
 sudo apt install ros-jazzy-cartographer-ros
+sudo apt install ros-jazzy-slam-toolbox
+```
 
+> If for some reasons you want to install the Dynamixel SDK from source you can download the following branch from GitHub:
+> ```bash
+> git clone -b humble-devel https://github.com/MOGI-ROS/DynamixelSDK/
+> ```
+> and if your Dynamixel SDK runs into a problem with module `em`, uninstall existing `em` and install this version as it's reported in [this GitHub issue](https://github.com/ros2/rosidl/issues/779). You might also need to install the module `lark`:
+> ```bash
+> pip install empy==3.3.4
+> pip install lark
+> ```
 
+Before we can test the Turtlebot3 packages we have to set up `TURTLEBOT3_MODEL` environmental variable:
+```bash
 export TURTLEBOT3_MODEL=burger
+```
 
+It's only valid for that terminal session where you set it up, so it's recommended to add it into your `.bashrc` file so every time when you open a new terminal, it will be executed. You can use the [following gist](https://gist.github.com/dudasdavid/bb2366e2a68bf1401ed692e41fed04d8) as an example how to set up the .bashrc file.
+
+After building the workspace and sourcing the `setup.bash` file we can test the simulation of the Turtlebot3 burger:
+```bash
 ros2 launch turtlebot3_gazebo empty_world.launch.py
+```
 
-ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
+![alt text][image15]
 
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-
-
-
-ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim:=true
-
+If we start a keyboard teleop node we can already drive the robot in the simulation:
+```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard 
+```
 
-Navigation:
+Or there is another example world:
+```bash
+ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+```
+![alt text][image16]
+
+Where we can try the `cartographer` package for mapping:
+```bash
+ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim:=true
+```
+![alt text][image18]
+
+There is another simulated environment:
+```bash
+ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
+```
+![alt text][image17]
+
+Where we can try the `nav2` navigation stack:
+```bash
 ros2 launch turtlebot3_navigation2 navigation2_use_sim_time.launch.py map_yaml_file:=/home/david/ros2_ws/src/turtlebot3_simulations/turtlebot3_gazebo/maps/map.yaml
+```
+> Replace the `map_yaml` path to your path!
+
+![alt text][image19]
+
 
 # Test on the real Turtlebot3
 
@@ -941,6 +983,14 @@ start on real robot:
 ros2 launch turtlebot3_bringup hardware.launch.py
 
 # Turtlebot3 MOGI
+
+ros2 launch turtlebot3_mogi simulation_bringup_slam.launch.py
+ros2 launch turtlebot3_mogi simulation_bringup_navigation.launch.py
+ros2 launch turtlebot3_mogi simulation_bringup_navigation_with_slam.launch.py
+
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
+ros2 run turtlebot3_mogi_py line_follower
+
 
 # Line following
 

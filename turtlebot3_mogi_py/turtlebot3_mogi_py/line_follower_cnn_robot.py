@@ -32,7 +32,7 @@ class ImageSubscriber(Node):
         self.config.gpu_options.allow_growth = True
         self.session = InteractiveSession(config=self.config)
 
-        model_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
+        model_path = "/home/pi/ros2_ws/src/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
 
         print("Tensorflow version: %s" % tf.__version__)
         keras_version_str = str(keras_version)

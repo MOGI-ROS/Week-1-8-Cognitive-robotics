@@ -25,7 +25,7 @@ class ImageSubscriber(Node):
 
 
         # Set image size
-        self.image_size = 20
+        self.image_size = 28
 
         # Initialize Tensorflow session
         self.config = ConfigProto()
@@ -154,15 +154,15 @@ class ImageSubscriber(Node):
 
         if prediction == 0: # Forward
             msg.angular.z = 0.0
-            msg.linear.x = 0.1
+            msg.linear.x = 0.08
         elif prediction == 1: # Left
-            msg.angular.z = -0.2
+            msg.angular.z = -0.3
             msg.linear.x = 0.05
         elif prediction == 2: # Right
-            msg.angular.z = 0.2
+            msg.angular.z = 0.3
             msg.linear.x = 0.05
         else: # Nothing
-            msg.angular.z = 0.1
+            msg.angular.z = 0.2
             msg.linear.x = 0.0
 
         # Publish cmd_vel

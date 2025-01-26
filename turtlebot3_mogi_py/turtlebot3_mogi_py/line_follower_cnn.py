@@ -25,7 +25,7 @@ class ImageSubscriber(Node):
 
 
         # Set image size
-        self.image_size = 24
+        self.image_size = 20
 
         # Initialize Tensorflow session
         self.config = ConfigProto()
@@ -133,10 +133,11 @@ class ImageSubscriber(Node):
         msg.angular.z = 0.0
 
         image = cv2.resize(img, (self.image_size, self.image_size))
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         image = img_to_array(image)
         image = np.array(image, dtype="float") / 255.0
 
-        image = image.reshape(-1, self.image_size, self.image_size, 3)
+        image = image.reshape(-1, self.image_size, self.image_size, 1)
         
         with tf.device('/gpu:0'):
             prediction = np.argmax(self.model(image, training=False))

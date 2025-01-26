@@ -23,6 +23,7 @@ setup(
             'line_follower = turtlebot3_mogi_py.line_follower:main',
             'save_training_images = turtlebot3_mogi_py.save_training_images:main',
             'line_follower_cnn = turtlebot3_mogi_py.line_follower_cnn:main',
+            'line_follower_cnn_robot = turtlebot3_mogi_py.line_follower_cnn_robot:main',
         ],
     },
 )

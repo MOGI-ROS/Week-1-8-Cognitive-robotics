@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from numpy.random import seed
 
 # Set image size
-image_size = 20
+image_size = 28
 
 config = ConfigProto()
 config.gpu_options.allow_growth = True
@@ -67,6 +67,35 @@ def build_LeNet(width, height, depth, classes):
     # return the constructed network architecture
     return model
 
+def build_customNet(width, height, depth, classes):
+    # initialize the model
+    model = Sequential()
+    inputShape = (height, width, depth)
+
+    # After Keras 2.3 we need an Input layer instead of passing it as a parameter to the first layer
+    model.add(Input(inputShape))
+
+    # first set of CONV => RELU => POOL layers
+    model.add(Conv2D(2, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(4, 4), strides=(4, 4)))
+
+    # second set of CONV => RELU => POOL layers
+    model.add(Conv2D(4, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(3, 3), strides=(3, 3)))
+
+    # first (and only) set of FC => RELU layers
+    model.add(Flatten())
+    model.add(Dense(32))
+    model.add(Activation("relu"))
+
+    # softmax classifier
+    model.add(Dense(classes))
+    model.add(Activation("softmax"))
+
+    # return the constructed network architecture
+    return model
     
 dataset = '..//training_images'
 # initialize the data and labels
@@ -113,13 +142,13 @@ testY = to_categorical(testY, num_classes=4)
 
 # initialize the number of epochs to train for, initial learning rate,
 # and batch size
-EPOCHS  = 40
+EPOCHS  = 80
 INIT_LR = 0.001
 BS      = 32
 
 # initialize the model
 print("[INFO] compiling model...")
-model = build_LeNet(width=image_size, height=image_size, depth=1, classes=4)
+model = build_customNet(width=image_size, height=image_size, depth=1, classes=4)
 opt = Adam(learning_rate=INIT_LR)
 model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
  

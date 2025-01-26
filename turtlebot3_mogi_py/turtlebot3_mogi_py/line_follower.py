@@ -78,6 +78,7 @@ class ImageSubscriber(Node):
 
             # Check for quit key
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.stop_robot()
                 self.running = False
                 break
 
@@ -221,12 +222,26 @@ class ImageSubscriber(Node):
 
         return img
 
+    def stop_robot(self):
+        msg = Twist()
+        msg.linear.x = 0.0
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = 0.0
+
+        self.publisher.publish(msg)
+
     def stop(self):
         """Stop the node and the spin thread."""
         self.running = False
         self.spin_thread.join()
 
 def main(args=None):
+
+    print("OpenCV version: %s" % cv2.__version__)
+
     rclpy.init(args=args)
     node = ImageSubscriber()
     

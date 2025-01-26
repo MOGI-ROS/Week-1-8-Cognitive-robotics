@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from numpy.random import seed
 
 # Set image size
-image_size = 24
+image_size = 20
 
 config = ConfigProto()
 config.gpu_options.allow_growth = True
@@ -82,6 +82,7 @@ for imagePath in imagePaths:
     # load the image, pre-process it, and store it in the data list
     image = cv2.imread(imagePath)
     image = cv2.resize(image, (image_size, image_size))
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     image = img_to_array(image)
     data.append(image)
     # extract the class label from the image path and update the
@@ -118,7 +119,7 @@ BS      = 32
 
 # initialize the model
 print("[INFO] compiling model...")
-model = build_LeNet(width=image_size, height=image_size, depth=3, classes=4)
+model = build_LeNet(width=image_size, height=image_size, depth=1, classes=4)
 opt = Adam(learning_rate=INIT_LR)
 model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
  

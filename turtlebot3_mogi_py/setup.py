@@ -21,6 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'line_follower = turtlebot3_mogi_py.line_follower:main',
+            'save_training_images = turtlebot3_mogi_py.save_training_images:main',
+            'line_follower_cnn = turtlebot3_mogi_py.line_follower_cnn:main',
         ],
     },
 )

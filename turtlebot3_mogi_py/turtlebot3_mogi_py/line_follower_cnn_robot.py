@@ -1,16 +1,16 @@
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import CompressedImage, Image
+from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Twist
 
+print("Importing tensorflow will take a while, please be patient...")
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
 from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.keras import __version__ as keras_version
 import tensorflow as tf
-import h5py
 import zipfile
 import json
 

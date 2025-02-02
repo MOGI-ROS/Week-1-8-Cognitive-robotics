@@ -106,7 +106,7 @@ class ImageSubscriber(Node):
                 grid_1, grid_2 = self.process_image(self.latest_frame)
 
                 # Add processed images as small images on top of main image
-                result = self.add_small_pictures(self.latest_frame, [grid_1, grid_2], size=(260, 125))
+                result = self.add_small_pictures(self.latest_frame, [grid_1, grid_2], size=(100, 100), x_base_offset=150)
 
                 # Show the latest frame
                 cv2.imshow("frame", result)
@@ -146,8 +146,8 @@ class ImageSubscriber(Node):
         activations_1 = self.activation_model_1.predict(image)
         activations_2 = self.activation_model_2.predict(image)
 
-        grid_image_1 = self.visualize_feature_maps(activations_1, num_rows=5, num_cols=10, padding=1)
-        grid_image_2 = self.visualize_feature_maps(activations_2, num_rows=5, num_cols=10, padding=1)
+        grid_image_1 = self.visualize_feature_maps(activations_1, num_rows=2, num_cols=2, padding=1)
+        grid_image_2 = self.visualize_feature_maps(activations_2, num_rows=2, num_cols=2, padding=1)
 
         print("Prediction %d, elapsed time %.3f" % (prediction, time.time()-self.last_time))
         self.last_time = time.time()
@@ -244,10 +244,7 @@ class ImageSubscriber(Node):
         return binary*255
 
     # Add small images to the top row of the main image
-    def add_small_pictures(self, img, small_images, size=(160, 120)):
-
-        x_base_offset = 40
-        y_base_offset = 10
+    def add_small_pictures(self, img, small_images, size=(160, 120), x_base_offset=40, y_base_offset=10):
 
         x_offset = x_base_offset
         y_offset = y_base_offset

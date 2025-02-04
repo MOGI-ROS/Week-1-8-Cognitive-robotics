@@ -907,7 +907,7 @@ git clone -b mogi-ros2 https://github.com/MOGI-ROS/turtlebot3
 git clone -b new_gazebo https://github.com/MOGI-ROS/turtlebot3_simulations
 ```
 
-We'll need to install a couple of other dependencies with `apt`:
+We'll need to install a couple of other dependencies with `apt` - don't forget to run `sudo apt update` and `sudo apt upgrade` if your system is not up to date:
 ```bash
 sudo apt install ros-jazzy-dynamixel-sdk
 sudo apt install ros-jazzy-hardware-interface
@@ -962,7 +962,7 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim:=true
 ```
 ![alt text][image18]
 
-There is another simulated environment:
+There is a third simulated environment:
 ```bash
 ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
 ```
@@ -979,32 +979,66 @@ ros2 launch turtlebot3_navigation2 navigation2_use_sim_time.launch.py map_yaml_f
 
 # Test on the real Turtlebot3
 
+Let's try the same functionality on the real Turtlebot3 Burger. The robots at the lab are updated to the latest SD card image but in case you need to write the official MOGI image to another SD card you find it [here](https://drive.google.com/file/d/1DOdRYKexACRd480pxIIv4g2WUbkFnlHY/view?usp=sharing).
 
-https://drive.google.com/file/d/1DOdRYKexACRd480pxIIv4g2WUbkFnlHY/view?usp=sharing
-sudo dd if=/dev/sda of=/home/david/Backups/backup250129_shrinked.img status=progress
-sudo dd of=/dev/sda if=/home/david/Backups/backup250129_shrinked.img status=progress
+> On Linux you can use the `dd` tool to create a backup or write your image back on a card. `if` is the input file and `of` is the output file.
+> To create a backup you can run the following command, where `/dev/sda` must match the path to your SD card:
+> ```
+> sudo dd if=/dev/sda of=/home/david/backup.img status=progress
+> ```
+> And you can easily write an image file back to the card:
+> ```
+> sudo dd of=/dev/sda if=/home/david/backup.img status=progress
+> ```
 
-.bashrc
-https://gist.github.com/dudasdavid/a7412c46ff7c174e670a5b2b5ea1e340
-```
+With the MOGI image the robots are already fully set up, [this is the `.bashrc`](https://gist.github.com/dudasdavid/a7412c46ff7c174e670a5b2b5ea1e340) that is running on the robots.
+
+It's useful to take a look especially on this environmental variable:
+```bash
 # Set up a ROS2 domain ID
 export ROS_DOMAIN_ID=30
 ```
 
-PC:
-https://gist.github.com/dudasdavid/bb2366e2a68bf1401ed692e41fed04d8
+This environment variable used in ROS2 that plays a key role in how nodes communicate over the DDS (Data Distribution Service) middleware. It partitions the DDS network into isolated segments. Nodes with the same domain ID can discover and communicate with each other, while nodes with different domain IDs remain isolated.
 
-start on real robot:
+First, we have to make sure that the robots are on the same wireless network, if needed this must be set up using a screen and a keyboard. The wifi networks can be configured by editing the `/etc/netplan/50-cloud-init.yaml` file.
+
+When the robot is on the same network as our PC we can connect to it using SSH, where the user name is `pi` and the IP address must match with our robot's IP address:
+```bash
+ssh pi@192.168.1.45
+```
+Then we are asked to enter the password, which is `123` for this image:
+```
+pi@192.168.1.45's password:
+```
+
+The ROS2 workspace is already set up on the robot, we can run the following launch file to start all the functions of the real robot:
+```bash
 ros2 launch turtlebot3_bringup hardware.launch.py
+```
 
-PC:
+The on the PC we can start the teleop node:
+```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard 
-q/z : increase/decrease max speeds by 10%
+```
 
-currently:	speed 0.12709329141645007	turn 0.25418658283290013 
+> I suggest to decrease the linear and angular speeds with the `z` key to some value like this:
+> ```
+> q/z : increase/decrease max speeds by 10%
+> currently:	speed 0.12709329141645007	turn 0.25418658283290013 
+> ```
 
+Then on the PC we can try a SLAM algorithm like the `cartographer` as before or the best open-source SLAM package `slam_toolbox`:
+
+```bash
 ros2 launch turtlebot3_slam_toolbox slam_toolbox.launch.py 
+```
 
+or if you prefer `cartographer`:
+
+```bash
+ros2 launch turtlebot3_cartographer cartographer.launch.py
+```
 
 # Turtlebot3 MOGI
 

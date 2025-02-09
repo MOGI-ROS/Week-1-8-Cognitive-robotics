@@ -95,7 +95,7 @@ def generate_launch_description():
         ),
         launch_arguments={
         'start_rviz': 'false',
-        'use_sim': 'true'
+        'use_sim': 'false'
         }.items()
     )
 
@@ -105,7 +105,7 @@ def generate_launch_description():
         ),
         launch_arguments={
         'start_rviz': 'false',
-        'use_sim': 'true'
+        'use_sim': 'false'
         }.items()
     )
 

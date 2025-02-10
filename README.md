@@ -25,6 +25,10 @@
 ## This is how far we will get by the end of this lesson: 
   <a href="https://youtu.be/Exqm_VrOytY"><img width="600" src="./assets/youtube-line-following.png"></a>  
 
+## Here you can see a short video about the final projects from the previous years:
+
+<a href="https://youtu.be/opmUsI7y6Y8"><img width="600" src="./assets/projects.png"></a>
+
 # Table of Contents
 1. [ROS basics](#ros-basics)  
 2. [Gazebo basics](#gazebo-basics)  
@@ -1041,6 +1045,8 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py
 ```
 
 # Turtlebot3 MOGI
+
+
 
 ros2 launch turtlebot3_mogi simulation_bringup_slam.launch.py
 ros2 launch turtlebot3_mogi simulation_bringup_navigation.launch.py

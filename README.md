@@ -19,6 +19,9 @@
 [image17]: ./assets/turtlebot-2.png "Turtlebot"
 [image18]: ./assets/slam.png "SLAM"
 [image19]: ./assets/navigation.png "Navigation"
+[image20]: ./assets/navigation-slam.png "Navigation"
+[image21]: ./assets/line-following.png "Line following"
+[image22]: ./assets/line-following-1.png "Line following"
 
 # Week 1-8: Cognitive robotics
 
@@ -1046,20 +1049,131 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py
 
 # Turtlebot3 MOGI
 
+After this point we'll use the `turtlebot3_mogi` package which is available in this repository and you can download into your workspace with the following command:
+```bash
+git clone https://github.com/MOGI-ROS/Week-1-8-Cognitive-robotics
+```
 
+If you've already downloaded it and you want to make sure it's up-to-date you can run the following command:
+```bash
+git pull
+```
 
+Let's see what is in the package:
+```bash
+turtlebot3_mogi$ tree
+.
+├── CMakeLists.txt
+├── package.xml
+├── gazebo_models
+│   ├── dark_bg
+│   │   ├── meshes
+│   │   │   └── dark_bg.dae
+│   │   ├── model.config
+│   │   └── model.sdf
+│   ├── light_bg
+│   │   ├── meshes
+│   │   │   └── light_bg.dae
+│   │   ├── model.config
+│   │   └── model.sdf
+│   └── red_line
+│       ├── meshes
+│       │   └── red_line.dae
+│       ├── model.config
+│       └── model.sdf
+├── launch
+│   ├── check_urdf.launch.py
+│   ├── robot_mapping.launch.py
+│   ├── robot_navigation.launch.py
+│   ├── robot_visualization.launch.py
+│   ├── simulation_bringup_line_follow.launch.py
+│   ├── simulation_bringup_navigation.launch.py
+│   ├── simulation_bringup_navigation_with_slam.launch.py
+│   └── simulation_bringup_slam.launch.py
+├── maps
+│   ├── map.pgm
+│   └── map.yaml
+├── meshes
+│   ├── dark_bg.blend
+│   └── light_bg.blend
+├── rviz
+│   ├── robot_basic.rviz
+│   ├── robot_mapping.rviz
+│   ├── robot_navigation.rviz
+│   ├── turtlebot3_line_follower.rviz
+│   ├── turtlebot3_navigation.rviz
+│   ├── turtlebot3_slam.rviz
+│   └── urdf.rviz
+└── worlds
+    ├── dark_background.sdf
+    ├── empty.sdf
+    ├── light_background.sdf
+    └── red_line.sdf
+```
+
+- `gazebo_models`: 3D models for the line following worlds
+- `launch`: Default launch files are already part of the starting package, we can test the package with `simulation_bringup_slam.launch.py`. Launchfiles starting with `robot_` prefix are intended to run with the real robot.
+- `maps`: saved map for testing the `simulation_bringup_navigation.launch.py`
+- `meshes`: this folder contains the 3D models of the line following worlds in native Blender format.
+- `rviz`: Pre-configured RViz2 layouts
+- `worlds`: default Gazebo worlds that we'll use in the simulations.
+
+Some launchfiles of the package acts as a simple wrapper to quickly launch the simulations that we already tried previous weeks. Let's try them out one by one, first the SLAM mapping:
+
+```bash
 ros2 launch turtlebot3_mogi simulation_bringup_slam.launch.py
+```
+
+In another terminal run a teleop node:
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+We can try the navigation:
+```bash
 ros2 launch turtlebot3_mogi simulation_bringup_navigation.launch.py
+```
+
+And finally a navigation without having an a priori map and running real time SLAM:
+```bash
 ros2 launch turtlebot3_mogi simulation_bringup_navigation_with_slam.launch.py
+```
+![alt text][image20]
 
-robot:
-ros2 launch turtlebot3_bringup hardware.launch.py
+There are 3 launch files that are intended to use with the real robot and not with the simulation:
 
-pc:
+```bash
 ros2 launch turtlebot3_mogi robot_visualization.launch.py 
 ros2 launch turtlebot3_mogi robot_mapping.launch.py
 ros2 launch turtlebot3_mogi robot_navigation.launch.py
+```
 
+To use these launchfiles, make sure that the robot is on the same network and its ROS nodes are started - on the robot:
+```bash
+ros2 launch turtlebot3_bringup hardware.launch.py
+```
+
+And finally there is one more launch file that we will use during the next weeks:
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
+```
+
+![alt text][image21]
+
+We can switch to another world with dark background and a light colored line (`dark_background.sdf`)  by changing the launch file or overriding the world argument when we launch the file:
+
+```python
+world_arg = DeclareLaunchArgument(
+    'world', default_value='light_background.sdf',
+    description='Name of the Gazebo world file to load'
+)
+```
+
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=dark_background.sdf
+```
+
+![alt text][image22]
 
 # Line following
 

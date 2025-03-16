@@ -1169,59 +1169,98 @@ world_arg = DeclareLaunchArgument(
 )
 ```
 
+![alt text][image22]
+
 ```bash
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=dark_background.sdf
 ```
 
-![alt text][image22]
+The `turtlebot3_mogi` package already includes the different colored tracks that I made in Blender, you can find a short tutorial about how to create your own world in Blender:
+
+<a href="https://www.youtube.com/watch?v=i9JbusxTcOg"><img width="400" src="./assets/blender.png"></a>
+
+You can also see the recording of another tutorial video about modeling in Blender:
+
+<a href="https://www.youtube.com/watch?v=K5v3cWsks8w"><img width="400" src="./assets/blender_2.png"></a>
+
+> The Blender files can be found in the `turtlebot3_mogi/meshes` folder!
+
+
 
 # Line following
 
+## Setting up a Python virtual environment
 
+First, we have to set up a python virtual environment where we'll install the python packages that we'll use in the next weeks. I call my virtual environment as `tf` because primarily I use it for Tensorflow.
 
+There are various ways to set up and use a Python virtual environment, here I show an example using the `pipx` package.
 
-
-tf virtualenv setup:
-
-Python environment:
+Install the following packages using `apt`:
+```bash
 sudo apt install python3-pip
 sudo apt install pipx
+```
+
+Then we are ready to start using the `pipx` package, run the following commands:
+```bash
 pipx ensurepath
 pipx install virtualenv
 pipx install virtualenvwrapper
+```
 
-.bashrc
-
-replace (created by pipx ensurepath)
+Now let's edit our `.bashrc` file, the `pipx ensurepath` command added a line that we'll change now. Replace the following line:
+```bash
 # Created by `pipx` on 2024-12-15 20:49:03
 export PATH="$PATH:/home/david/.local/bin"
+```
 
-# Virtual environment for pipx and tensorflow
+to this:
+```bash
+# Virtual environment for pipx and  tensorflow
 export PATH="$PATH:/home/$USER/.local/bin"
 export WORKON_HOME=~/.virtualenvs
-export VIRTUALENVWRAPPER_PYTHON=/home/$USER/.local/share/pipx/venvs/virtu>
-source /home/$USER/.local/share/pipx/venvs/virtualenvwrapper/bin/virtuale>
+export VIRTUALENVWRAPPER_PYTHON=/home/$USER/.local/share/pipx/venvs/virtualenvwrapper/bin/python3
+source /home/$USER/.local/share/pipx/venvs/virtualenvwrapper/bin/virtualenvwrapper_lazy.sh
 workon tf
+```
 
+Start a new terminal and you'll get the following error message because in `.bashrc` we used the command `workon tf` but there is no virtual environment named `tf` yet:
+```bash
 ERROR: Environment 'tf' does not exist. Create it with 'mkvirtualenv tf'.
+```
 
+So let's create one with the following command:
+```bash
 mkvirtualenv tf
+```
 
-Install python packages:
-
+Now, start a new terminal and you should see the active virtual environment between parentheses in your terminal:
+```bash
 (tf) david@david-ubuntu24:~$ 
-pip install tensorflow
+```
+
+## Install Python packages
+
+Let's install Python packages that we'll use, to ensure compatibility with the codes in this repository let's use a specific version from `numpy` and `tensorflow`:
+
+```bash
+pip install tensorflow==2.18.0
 pip install imutils
 pip install scikit-learn
 pip install opencv-python
 pip install matplotlib
-pip install numpy==1.26.4 - to downgrade from 2.x.x
+pip install numpy==1.26.4
+```
 
+## Line following with OpenCV:
 
-
+```bash
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
-ros2 run turtlebot3_mogi_py line_follower
+```
 
+```bash
+ros2 run turtlebot3_mogi_py line_follower
+```
 
 # Neural network
 

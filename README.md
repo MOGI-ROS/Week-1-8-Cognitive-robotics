@@ -23,6 +23,7 @@
 [image21]: ./assets/line-following.png "Line following"
 [image22]: ./assets/line-following-1.png "Line following"
 [image23]: ./assets/line-following-2.png "Line following"
+[image24]: ./assets/line-following-3.png "Line following"
 
 # Week 1-8: Cognitive robotics
 
@@ -1451,6 +1452,27 @@ The image processing pipeline is the following:
 4. Apply a highpass binary threshold on lightness channel so we can detect light objects (white), everything else is black
 5. Find all the white contours on the binary image
 6. Find the biggest contour and calculate its centroid
+
+Let's switch to the dark background:
+
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=dark_background.sdf
+```
+
+And don't forget to turn off inverting the lightness channel!
+```python
+        # 2. Invert lightness channel if we follow a dark line on a light background
+        #L = 255 - L # Invert lightness channel
+```
+
+![alt text][image24]
+
+You can try to tune the channel filter for the 3rd world in the package:
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=red_line.sdf
+```
+
+> It's difficult to do it with the lightness channel because both the background's and line's lightness values are similar although they are clearly different on the hue channel.
 
 # Neural network
 

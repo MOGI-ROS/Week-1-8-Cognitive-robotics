@@ -22,6 +22,7 @@
 [image20]: ./assets/navigation-slam.png "Navigation"
 [image21]: ./assets/line-following.png "Line following"
 [image22]: ./assets/line-following-1.png "Line following"
+[image23]: ./assets/line-following-2.png "Line following"
 
 # Week 1-8: Cognitive robotics
 
@@ -1254,13 +1255,202 @@ pip install numpy==1.26.4
 
 ## Line following with OpenCV:
 
+> OpenCV (Open Source Computer Vision Library) is a free, open-source library used for computer vision, image processing, and machine learning. It provides tools to analyze visual data from images and videos, such as detecting faces, objects, and motion, or applying filters and transformations. OpenCV is widely used in robotics, AI, and real-time applications, and it supports many programming languages, including Python and C++. It helps developers easily build systems that can “see” and interpret visual information.
+
+As we saw in the previous chapter, we can start the simulation that is set up for the line following with the following command:
 ```bash
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
 ```
 
+Now let's try the node that follows the line with image processing using OpenCV:
 ```bash
 ros2 run turtlebot3_mogi_py line_follower
 ```
+
+The robot starts follwoing the line and we see the following window:
+![alt text][image23]
+
+Let's analyze the code! We create a subscriber for compressed images from the robot's camera and a publisher for the `cmd_vel` topic that will drive the robot. We also start another thread that guarantees that the `spin()` function is called regardless how long our image processing will take. The `spin()` function is essential to ensure that `image_callback()` will be always executed and we won't miss frames.
+
+```python
+class ImageSubscriber(Node):
+    def __init__(self):
+        super().__init__('image_subscriber')
+        
+        '''
+        # Create a subscriber with a queue size of 1 to only keep the last frame
+        self.subscription = self.create_subscription(
+            Image,
+            'image_raw',  # Replace with your topic name
+            self.image_callback,
+            1  # Queue size of 1
+        )
+        '''
+
+        self.subscription = self.create_subscription(
+            CompressedImage,
+            'image_raw/compressed',  # Replace with your topic name
+            self.image_callback,
+            1  # Queue size of 1
+        )
+
+        self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
+        
+        # Initialize CvBridge
+        self.bridge = CvBridge()
+        
+        # Variable to store the latest frame
+        self.latest_frame = None
+        self.frame_lock = threading.Lock()  # Lock to ensure thread safety
+        
+        # Flag to control the display loop
+        self.running = True
+
+        # Start a separate thread for spinning (to ensure image_callback keeps receiving new frames)
+        self.spin_thread = threading.Thread(target=self.spin_thread_func)
+        self.spin_thread.start()
+
+    def spin_thread_func(self):
+        """Separate thread function for rclpy spinning."""
+        while rclpy.ok() and self.running:
+            rclpy.spin_once(self, timeout_sec=0.05)
+
+    def image_callback(self, msg):
+        """Callback function to receive and store the latest frame."""
+        # Convert ROS Image message to OpenCV format and store it
+        with self.frame_lock:
+            #self.latest_frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.latest_frame = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
+```
+
+Then we run the `display_image()` function in an infinite loop which uses built-in OpnCV functions to create a window and display the `result` image. OpenCV is also responsible for handling keyboard commands, if we press `q` key the node will stop. Of course, the node can be also stopped with `Ctrl+C` if the focus is on the command line.
+
+```python
+    def display_image(self):
+
+        # Create a single OpenCV window
+        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("frame", 800,600)
+
+        while rclpy.ok():
+            # Check if there is a new frame available
+            if self.latest_frame is not None:
+
+                # Process the current image
+                mask, contour, crosshair = self.process_image(self.latest_frame)
+
+                # Add processed images as small images on top of main image
+                result = self.add_small_pictures(self.latest_frame, [mask, contour, crosshair])
+
+                # Show the latest frame
+                cv2.imshow("frame", result)
+                self.latest_frame = None  # Clear the frame after displaying
+
+            # Check for quit key
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.stop_robot()
+                self.running = False
+                break
+
+        # Close OpenCV window after quitting
+        cv2.destroyAllWindows()
+        self.running = False
+```
+
+The `result` frame is created using a simple function that overlays 3 small images on the original frame from the camera.
+
+Every image processing and publishing the commands on the `cmd_vel` topic is happening within the `process_image()` function:
+
+```python
+    def process_image(self, img):
+
+        msg = Twist()
+        msg.linear.x = 0.0
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = 0.0
+
+        rows,cols = img.shape[:2]
+
+        # 1. Convert to HLS color space to extract lightness channel
+        H,L,S = self.convert2hls(img)
+
+        # 2. Invert lightness channel if we follow a dark line on a light background
+        L = 255 - L # Invert lightness channel
+
+        # 3. apply a polygon mask to filter out simulation's bright sky
+        L_masked, mask = self.apply_polygon_mask(L)
+
+        # 4. For light line on dark background in simulation:
+        lightnessMask = self.threshold_binary(L_masked, (50, 255))
+
+        # For light line on dark background in real life environment:
+        #lightnessMask = self.threshold_binary(L_masked, (180, 255))
+        stackedMask = np.dstack((lightnessMask, lightnessMask, lightnessMask))
+        contourMask = stackedMask.copy()
+        crosshairMask = stackedMask.copy()
+
+        # 5. return value of findContours depends on OpenCV version
+        (contours,hierarchy) = cv2.findContours(lightnessMask.copy(), 1, cv2.CHAIN_APPROX_NONE)
+
+        # overlay mask on lightness image to show masked area on the small picture
+        lightnessMask = cv2.addWeighted(mask,0.2,lightnessMask,0.8,0)
+
+        # 6. Find the biggest contour (if detected) and calculate its centroid
+        if len(contours) > 0:
+            
+            biggest_contour = max(contours, key=cv2.contourArea)
+            M = cv2.moments(biggest_contour)
+
+            # Make sure that "m00" won't cause ZeroDivisionError: float division by zero
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+            else:
+                cx, cy = 0, 0
+
+            # Show contour and centroid
+            cv2.drawContours(contourMask, biggest_contour, -1, (0,255,0), 10)
+            cv2.circle(contourMask, (cx, cy), 20, (0, 0, 255), -1)
+
+            # Show crosshair and difference from middle point
+            cv2.line(crosshairMask,(cx,0),(cx,rows),(0,0,255),10)
+            cv2.line(crosshairMask,(0,cy),(cols,cy),(0,0,255),10)
+            cv2.line(crosshairMask,(int(cols/2),0),(int(cols/2),rows),(255,0,0),10)
+
+            # Chase the ball
+            #print(abs(cols - cx), cx, cols)
+            if abs(cols/2 - cx) > 20:
+                msg.linear.x = 0.05
+                if cols/2 > cx:
+                    msg.angular.z = 0.15
+                else:
+                    msg.angular.z = -0.15
+
+            else:
+                msg.linear.x = 0.1
+                msg.angular.z = 0.0
+
+        else:
+            msg.linear.x = 0.0
+            msg.angular.z = 0.0
+
+        # Publish cmd_vel
+        self.publisher.publish(msg)
+
+        # Return processed frames
+        return lightnessMask, contourMask, crosshairMask
+```
+
+The image processing pipeline is the following:
+1. Convert the RGB image to HLS color space so we can extract the lightness channel
+2. Invert lightness channel if we want to detect a dark line on lighter background
+3. Add a polygon mask to filter out disturbances of the environment
+4. Apply a highpass binary threshold on lightness channel so we can detect light objects (white), everything else is black
+5. Find all the white contours on the binary image
+6. Find the biggest contour and calculate its centroid
 
 # Neural network
 

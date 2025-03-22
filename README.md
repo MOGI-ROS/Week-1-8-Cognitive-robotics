@@ -24,6 +24,7 @@
 [image22]: ./assets/line-following-1.png "Line following"
 [image23]: ./assets/line-following-2.png "Line following"
 [image24]: ./assets/line-following-3.png "Line following"
+[image25]: ./assets/saving-images.png "Saving images"
 
 # Week 1-8: Cognitive robotics
 
@@ -1472,18 +1473,83 @@ You can try to tune the channel filter for the 3rd world in the package:
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=red_line.sdf
 ```
 
-> It's difficult to do it with the lightness channel because both the background's and line's lightness values are similar although they are clearly different on the hue channel.
+> It's difficult to do it with the lightness channel because both the background's and line's lightness values are similar although they are clearly different on the hue channel. In RGB color space it would be even easier to segment the line from its background.
 
 # Neural network
 
+In this chapter we'll create our own convolutional neural network (CNN) and train it for following the line. But before that, let's see what did we learn from the line following with OpenCV:
 
-OpenCV version: 4.11.0
-Tensorflow version: 2.18.0
-Keras version: 3.7.0
-CNN model: /home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras
-Model's Keras version: 3.7.0
+## Lessons learnt from image processing with OpenCV
+1. With color space filtering we only focus on one property of line (color) but our model wasn't trying to detect it's shape or any other properties.
+2. Color space filtering is very sensitive in changes in environment or with the object. We have to adjust filter values for changed conditions. Also it's possible that we have to significantly modify the image processing pipeline because the problem can be solved e.g. in another color space.
+3. We had high resolution information (in number of pixels) about how much do we have to turn but we didn't use that. Above 20 pixels difference - between the centerpoint and the centroid of the line - the robot was turning to the left or right on a fixed radius. We'll apply the same logic to the neural network. 
 
+## Create and label the training dataset
 
+To save training images let's start the simulation:
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
+```
+
+Start a teleop node:
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+And finally, we will run the `save_training_images` node that can save training images by pressing the `s` key, but before that, make sure that `self.save_path` is set to your own directory in the node:
+
+```python
+class ImageSubscriber(Node):
+    def __init__(self):
+        super().__init__('image_subscriber')
+
+        self.subscription = self.create_subscription(
+            CompressedImage,
+            'image_raw/compressed',  # Replace with your topic name
+            self.image_callback,
+            1  # Queue size of 1
+        )
+
+        self.save_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/saved_images/"
+```
+
+If the path is set up correctly we can run the node:
+
+```bash
+ros2 run turtlebot3_mogi_py save_training_images
+```
+
+![alt text][image25]
+
+To label the saved images we just simply have to copy the images to the suitable folder under the `training_images` folder. We only distinguish 4 labels:
+- Forward
+- Turn left
+- Turn right
+- There is no line on the image
+
+## Train the neural network
+
+1998:
+By Yann LeCun and colleagues for handwritten digit recognition (MNIST dataset).
+One of the first convolutional neural networks (CNNs).
+LeNet-5 was pioneering for CNNs and laid the groundwork for modern deep learning in vision.
+
+```
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Layer    ┃ Type                       ┃ Output Shape   ┃ Params Calculation           ┃ Parameters ┃
+┣━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━┫
+┃ Input    ┃ Input(shape=(32,32,1))     ┃ (32, 32, 1)    ┃ No params                    ┃ 0          ┃
+┃ C1       ┃ Conv2D(6, 5×5)             ┃ (28, 28, 6)    ┃ (5×5×1 + 1) × 6 = 156        ┃ 156        ┃
+┃ S2       ┃ AveragePooling2D(2×2)      ┃ (14, 14, 6)    ┃ No params                    ┃ 0          ┃
+┃ C3       ┃ Conv2D(16, 5×5)            ┃ (10, 10, 16)   ┃ (5×5×6 + 1) × 16 = 2,416     ┃ 2,416      ┃
+┃ S4       ┃ AveragePooling2D(2×2)      ┃ (5, 5, 16)     ┃ No params                    ┃ 0          ┃
+┃ C5       ┃ Conv2D(120, 5×5)           ┃ (1, 1, 120)    ┃ (5×5×16 + 1) × 120 = 48,120  ┃ 48,120     ┃
+┃ Flatten  ┃ –                          ┃ (120,)         ┃ No params                    ┃ 0          ┃
+┃ F6       ┃ Dense(84)                  ┃ (84,)          ┃ 120×84 + 84 = 10,164         ┃ 10,164     ┃
+┃ Output   ┃ Dense(10)                  ┃ (10,)          ┃ 84×10 + 10 = 850             ┃ 850        ┃
+┗━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━┛
+Total Parameters: 61,706 
+```
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
@@ -1519,8 +1585,22 @@ Model's Keras version: 3.7.0
 
 Trainable params: 929,074
 
-GPT-4 1.76 trillion, GPT-3 175 billion, GPT-2 pedig 1.5 billion paremeters.
-DeepSeek R1 671 billion = 404GB, 1.5 billion = 1.1GB
+GPT-4 around 500-1000 billion, GPT-3 175 billion, GPT-2 XL was 1.5 billion paremeters (2019).
+DeepSeek V2 downloadbale model: 671 billion = 404GB, 1.5 billion = 1.1GB
+
+
+## Line following with CNN
+
+
+OpenCV version: 4.11.0
+Tensorflow version: 2.18.0
+Keras version: 3.7.0
+CNN model: /home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras
+Model's Keras version: 3.7.0
+
+
+
+
 
 
 # Test on the real robot

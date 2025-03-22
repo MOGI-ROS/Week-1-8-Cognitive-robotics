@@ -98,16 +98,17 @@ class ImageSubscriber(Node):
 
         rows,cols = img.shape[:2]
 
+        # 1. Convert to HLS color space to extract lightness channel
         H,L,S = self.convert2hls(img)
 
-        # apply a polygon mask to filter out simulation's bright sky
+        # 2. Invert lightness channel if we follow a dark line on a light background
+        L = 255 - L # Invert lightness channel
+
+        # 3. apply a polygon mask to filter out simulation's bright sky
         L_masked, mask = self.apply_polygon_mask(L)
 
-        # For dark line on light background in simulation:
-        lightnessMask = self.threshold_binary(L, (0, 50))
-
-        # For light line on dark background in simulation:
-        #lightnessMask = self.threshold_binary(L_masked, (50, 255))
+        # 4. For light line on dark background in simulation:
+        lightnessMask = self.threshold_binary(L_masked, (50, 255))
 
         # For light line on dark background in real life environment:
         #lightnessMask = self.threshold_binary(L_masked, (180, 255))
@@ -115,13 +116,13 @@ class ImageSubscriber(Node):
         contourMask = stackedMask.copy()
         crosshairMask = stackedMask.copy()
 
-        # return value of findContours depends on OpenCV version
+        # 5. return value of findContours depends on OpenCV version
         (contours,hierarchy) = cv2.findContours(lightnessMask.copy(), 1, cv2.CHAIN_APPROX_NONE)
 
         # overlay mask on lightness image to show masked area on the small picture
         lightnessMask = cv2.addWeighted(mask,0.2,lightnessMask,0.8,0)
 
-        # Find the biggest contour (if detected)
+        # 6. Find the biggest contour (if detected) and calculate its centroid
         if len(contours) > 0:
             
             biggest_contour = max(contours, key=cv2.contourArea)
@@ -137,7 +138,6 @@ class ImageSubscriber(Node):
             # Show contour and centroid
             cv2.drawContours(contourMask, biggest_contour, -1, (0,255,0), 10)
             cv2.circle(contourMask, (cx, cy), 20, (0, 0, 255), -1)
-
 
             # Show crosshair and difference from middle point
             cv2.line(crosshairMask,(cx,0),(cx,rows),(0,0,255),10)
@@ -165,7 +165,7 @@ class ImageSubscriber(Node):
         self.publisher.publish(msg)
 
         # Return processed frames
-        return lightnessMask, contourMask, crosshairMask
+        return L_masked, contourMask, crosshairMask
 
     # Convert to RGB channels
     def convert2rgb(self, img):

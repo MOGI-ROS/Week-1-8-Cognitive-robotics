@@ -25,6 +25,9 @@
 [image23]: ./assets/line-following-2.png "Line following"
 [image24]: ./assets/line-following-3.png "Line following"
 [image25]: ./assets/saving-images.png "Saving images"
+[image26]: ./assets/training.png "Training"
+[image27]: ./assets/training-1.png "Training"
+[image28]: ./assets/training-2.png "Training"
 
 # Week 1-8: Cognitive robotics
 
@@ -1527,13 +1530,101 @@ To label the saved images we just simply have to copy the images to the suitable
 - Turn right
 - There is no line on the image
 
+There are already about 100-100 training images in the package from both dark and light background environments under different lighting conditions also some images from a real-world environment. The training data is not balanced though with the images where there is no line. This is good enough for the training but you can add your own images! Intentionally, there aren't any images about the red line with green background, we want to verify later how well does our generalized model perform on a completely new environment.
+
 ## Train the neural network
 
-1998:
-By Yann LeCun and colleagues for handwritten digit recognition (MNIST dataset).
-One of the first convolutional neural networks (CNNs).
-LeNet-5 was pioneering for CNNs and laid the groundwork for modern deep learning in vision.
+The `turtlebot3_mogi` package already has a trained network in `network_model` folder that is ready to use. This model was trained using the following Tensorflow and Keras version:
+```
+Tensorflow version: 2.18.0
+Keras version: 3.7.0
+```
+>TensorFlow:  
+>TensorFlow is an open-source deep learning library developed by Google. It helps build, train, and deploy machine learning models, especially neural networks, using efficient tools for math, data handling, and GPU acceleration.
+>
+>Keras:  
+>Keras is a high-level API that runs on top of TensorFlow. It makes building and training models easier and more user-friendly with a simple, intuitive interface.
 
+If you installed a different Tensorflow or Keras version you might need to train a new network before using it.
+
+There is already a training script in the package - although this isn't a ROS node just a simple python script! So don't run it with `ros2 run ...`!
+First, navigate to the right folder then run the script:
+```bash
+(tf) david@david-ubuntu24:~/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/turtlebot3_mogi_py$ python train_network.py 
+[INFO] Version:
+Tensorflow version: 2.18.0
+Keras version: b'3.7.0'
+[INFO] loading images and labels...
+```
+
+Let's take a look on the code! The most important part of the code is just a couple of lines:
+```python
+# initialize the model
+print("[INFO] compiling model...")
+model = build_LeNet(width=image_size, height=image_size, depth=3, classes=4)
+opt = Adam(learning_rate=INIT_LR)
+model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+ 
+# print model summary
+model.summary()
+
+# checkpoint the best model
+checkpoint_filepath = "..//network_model//model.best.keras"
+checkpoint = ModelCheckpoint(checkpoint_filepath, monitor = 'val_loss', verbose=1, save_best_only=True, mode='min')
+
+# set a learning rate annealer
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=3, verbose=1, factor=0.5, min_lr=1e-6)
+
+# callbacks
+callbacks_list=[reduce_lr, checkpoint]
+
+# train the network
+print("[INFO] training network...")
+history = model.fit(trainX, trainY, batch_size=BS, validation_data=(testX, testY), epochs=EPOCHS, callbacks=callbacks_list, verbose=1)
+```
+
+This will initialize a model using the `build_LeNet` function, then turns on 2 important functions:
+- ModelCheckpoint() will guarantee that if it finds a better fitting model during the training, it saves it. So in the end we won't only have the *last* model, but also the *best* model.
+- ReduceLROnPlateau() helps reducing the learning rate (how much it can update the weights) if it detects that our model cannot find a more fitting optimum during the training due to too high learning rate. Higher learning rate is better in the beginning but later it's a risk of overshooting or missing the bottom.
+
+But what is the `build_LeNet` function?
+
+```python
+def build_LeNet(width, height, depth, classes):
+    # initialize the model
+    model = Sequential()
+    inputShape = (height, width, depth)
+
+    # After Keras 2.3 we need an Input layer instead of passing it as a parameter to the first layer
+    model.add(Input(inputShape))
+
+    # first set of CONV => RELU => POOL layers
+    model.add(Conv2D(20, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # second set of CONV => RELU => POOL layers
+    model.add(Conv2D(50, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # first (and only) set of FC => RELU layers
+    model.add(Flatten())
+    model.add(Dense(500))
+    model.add(Activation("relu"))
+
+    # softmax classifier
+    model.add(Dense(classes))
+    model.add(Activation("softmax"))
+
+    # return the constructed network architecture
+    return model
+```
+
+LeNet-5 was originally invented by Yann LeCun and colleagues for handwritten digit recognition on the MNIST dataset in 1998! It's first predecessor is dated back to 1989 though as the first 
+It was one of the first convolutional neural networks (CNN). LeNet-5 was pioneering for CNNs and laid the groundwork for modern deep learning in vision.
+
+I'm cheating a little bit here, because this network that we use is significantly bigger than the original LeNet-5 that had the following architecture:
 ```
 ┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ Layer    ┃ Type                       ┃ Output Shape   ┃ Params Calculation           ┃ Parameters ┃
@@ -1548,9 +1639,10 @@ LeNet-5 was pioneering for CNNs and laid the groundwork for modern deep learning
 ┃ F6       ┃ Dense(84)                  ┃ (84,)          ┃ 120×84 + 84 = 10,164         ┃ 10,164     ┃
 ┃ Output   ┃ Dense(10)                  ┃ (10,)          ┃ 84×10 + 10 = 850             ┃ 850        ┃
 ┗━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━┛
-Total Parameters: 61,706 
+Total params: 61,706 
 ```
 
+Our version of LeNet has about 1 million trainable parameters!
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
 ┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
@@ -1577,20 +1669,115 @@ Total Parameters: 61,706
 ├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
 │ activation_3 (Activation)            │ (None, 4)                   │               0 │
 └──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
- Total params: 2,787,224 (10.63 MB)
+ Total params: 929,074 (3.54 MB)
  Trainable params: 929,074 (3.54 MB)
  Non-trainable params: 0 (0.00 B)
- Optimizer params: 1,858,150 (7.09 MB)
 ```
 
-Trainable params: 929,074
+1 million parameters might look a lot, especially compared to the original LeNet-5's 61k parameters. But let's put into more context:
+- GPT-2 XL was a state of the art LLM (large language model) in 2019, it has 1.5 billion paremeters
+- GPT-3 has 175 billion parameters
+- GPT-4 isn't openly published anymore, but it's assumed it has around 500-1000 billion parameters
+- DeepSeek V2's architecture is open-source, there are different downloadable models, the biggest one has 671 billion parameters and it's about 404GB. The smallest one had 1.5 billion parameters and its size is 1.1GB.
 
-GPT-4 around 500-1000 billion, GPT-3 175 billion, GPT-2 XL was 1.5 billion paremeters (2019).
-DeepSeek V2 downloadbale model: 671 billion = 404GB, 1.5 billion = 1.1GB
+These are all LLMs but how did we get there in about 20 (30) years from the first CNNs.
 
+- CNNs are focusing on spatial patterns that makes them very efficient in image processing.
+- RNNs were also introduced in the late '80s, but their major real life application was around the early 2000s to generate basic character sequences or predict the next words in a sentence. It focuses on temporal patterns, but it had problems with vanishing gradient during training - the model cannot learn from earlier inputs with long sequences when it goes back many time steps.
+- LSTMs (Long-short term memory) addressed to solve the issues of RNNs and these were the state of the art neural networks around 2013-2018 for natural language processing. LSTM cells were introduced to preserve important input that was flowing forward during training without vanishing. Although it was a huge step for natural language processing and it handles temporal data better (text, speech), it was slow and had issues with longer sequences. Since it was still analyzing the input word by word, it was hard to remember words from earler.
+- Transformers (LLMs based on transformers) made LSTMs completely obsolete since 2018, they handle long sequences very well and it's fast with parallelism. It handles longer sequences much better because it has attention that can extract the important information from the context.
+
+But let's come back to our training and let's see how did it go!
+![alt text][image26]
+
+Accuracy measures how many predictions were correct out of all predictions. Higher accuracy = better performance.
+Loss is a formula that compares the model’s prediction to the true value (label) and gives a number representing how wrong it is. The goal of training is to minimize the loss.
+
+The loss was successfully minimized during training, but the validation loss doesn't look great. This usually means our model is overfitting or not generalizing well to new, unseen data. That can have multiple reasons:
+1. It learns training data too well (memorizes), but struggles on validation data.
+2. If validation data has noise, imbalance, or different distribution, loss may stay higher.
+3. Model is too complex, large models memorize training data easily but don’t generalize well.
+
+Although our model is not exactly small, still it's far from too high complexity, we can exclude point 3.
+
+We can reduce overfitting by adding dropout after certain layers. Dropout randomly turns off neurons during training so it prevents over-reliance on specific ones. Helps the model generalize better which shouldt reduce our validation loss!
+
+```python
+def build_LeNet(width, height, depth, classes):
+    # initialize the model
+    model = Sequential()
+    inputShape = (height, width, depth)
+
+    # After Keras 2.3 we need an Input layer instead of passing it as a parameter to the first layer
+    model.add(Input(inputShape))
+
+    # first set of CONV => RELU => POOL layers
+    model.add(Conv2D(20, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # Optional Dropout after first pool (small value)
+    model.add(Dropout(0.25))
+
+    # second set of CONV => RELU => POOL layers
+    model.add(Conv2D(50, (5, 5), padding="same"))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+    # Optional Dropout again
+    model.add(Dropout(0.25))
+
+    # first (and only) set of FC => RELU layers
+    model.add(Flatten())
+    model.add(Dense(500))
+    model.add(Activation("relu"))
+
+    # Dropout after fully connected (higher value)
+    model.add(Dropout(0.5))
+
+    # softmax classifier
+    model.add(Dense(classes))
+    model.add(Activation("softmax"))
+
+    # return the constructed network architecture
+    return model
+```
+
+Let's try the model training with the dropouts:
+![alt text][image27]
+
+We can clearly see the impact of droupout on the smaller spikes, but it was not improving our validation loss at all. Let's remember that our training set is not balanced on images with no line, only 20 pictures compared to the other 3 classes with 100 pictures. But then we should have random results after every training, right?
+
+Not really, we intentionally fixed all of our random seeds in the beginning of the script to make sure that the trainings are reproducible!
+
+```python
+# Fix every random seed to make the training reproducible
+seed(1)
+set_seed(2)
+random.seed(42)
+```
+
+Let's try different random seeds:
+```python
+# Fix every random seed to make the training reproducible
+seed(1)
+set_seed(1)
+random.seed(4)
+```
+
+And the result is much better!
+
+![alt text][image28]
+
+This time we were lucky, the validation loss was high only because of a not balanced input data we don't have to change anything on our model.
 
 ## Line following with CNN
 
+Let's 
+
+```python
+model_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
+```
 
 OpenCV version: 4.11.0
 Tensorflow version: 2.18.0
@@ -1631,10 +1818,9 @@ Model's Keras version: 3.7.0
 ├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
 │ activation_3 (Activation)            │ (None, 4)                   │               0 │
 └──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
- Total params: 2,798 (10.93 KB)
+ Total params: 932 (3.64 KB)
  Trainable params: 932 (3.64 KB)
  Non-trainable params: 0 (0.00 B)
- Optimizer params: 1,866 (7.29 KB)
 ```
 
 Trainable params: 932 (1000 times smaller than a LeNet-5)

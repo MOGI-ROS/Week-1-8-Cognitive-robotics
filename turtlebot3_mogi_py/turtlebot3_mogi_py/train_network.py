@@ -1,6 +1,6 @@
 # import the necessary packages
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Activation, Flatten, Dense, Conv2D, MaxPooling2D, Input
+from tensorflow.keras.layers import Activation, Flatten, Dense, Conv2D, MaxPooling2D, Input, Dropout
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay

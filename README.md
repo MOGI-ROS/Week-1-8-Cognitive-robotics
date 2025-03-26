@@ -28,6 +28,7 @@
 [image26]: ./assets/training.png "Training"
 [image27]: ./assets/training-1.png "Training"
 [image28]: ./assets/training-2.png "Training"
+[image29]: ./assets/trajectory.png "mogi_trajectory_server"
 
 # Week 1-8: Cognitive robotics
 
@@ -1123,6 +1124,16 @@ turtlebot3_mogi$ tree
 - `meshes`: this folder contains the 3D models of the line following worlds in native Blender format.
 - `rviz`: Pre-configured RViz2 layouts
 - `worlds`: default Gazebo worlds that we'll use in the simulations.
+
+---
+
+Important: this package has a dependency on the `mogi_trajectory_server` package that helps visualizing the robot's past trajectory. You can download this package from git to your workspace to use it:
+```bash
+git clone https://github.com/MOGI-ROS/mogi_trajectory_server
+```
+![alt text][image29]
+
+---
 
 Some launchfiles of the package acts as a simple wrapper to quickly launch the simulations that we already tried previous weeks. Let's try them out one by one, first the SLAM mapping:
 

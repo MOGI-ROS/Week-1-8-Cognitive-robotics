@@ -1570,6 +1570,12 @@ Keras version: b'3.7.0'
 [INFO] loading images and labels...
 ```
 
+> In 2025 April there isn't any tensorflow version that could support CUDA version higher than 12.5 which might result in incompatibility with Ubuntu 24.04. If you have to disable GPU acceleration until compatibility issues are resolved, just set temporarily the following environmental variable in the right terminal window:
+> ```yaml
+> export CUDA_VISIBLE_DEVICES=""
+> ```
+> You can check the current compatibility table on [this link](https://www.tensorflow.org/install/source#gpu).
+
 Let's take a look on the code! The most important part of the code is just a couple of lines:
 ```python
 # initialize the model

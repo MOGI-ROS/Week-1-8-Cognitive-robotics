@@ -1561,7 +1561,7 @@ If you installed a different Tensorflow or Keras version you might need to train
 
 There is already a training script in the package - although this isn't a ROS node just a simple python script! So don't run it with `ros2 run ...`!
 First, navigate to the right folder then run the script:
-```bash
+```yaml
 (tf) david@david-ubuntu24:~/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/turtlebot3_mogi_py$ python train_network.py 
 [INFO] Version:
 Tensorflow version: 2.18.0
@@ -1785,6 +1785,17 @@ This time we were lucky, the validation loss was high only because of a not bala
 
 ## Line following with CNN
 
+The labeling and training we did is a very simple classification. It'll look the whole image and will predict if our robot has to drive straight, turn left or right or if there isn't any line on the image. There are more complex image processing CNNs like detection and segmentation:
+
+| Feature                 | **Classification**               | **Object Detection**                     | **Segmentation**                                 |
+|-------------------------|----------------------------------|------------------------------------------|--------------------------------------------------|
+| **What it does**        | Predicts 1+ labels for the entire image | Detects and classifies objects with bounding boxes | Labels each pixel with a class (and instance)     |
+| **Example**             | "This is a cat"                  | "Cat at top-left, dog at bottom-right"   | "These pixels are cat, those are dog"           |
+| **Labeling Effort**     | **Easy** – one label/image       | **Medium** – draw boxes + labels         | **Hard** – pixel-wise annotation                 |
+| **Training Complexity** | **Low** – smaller models         | **Medium** – more complex models         | **High** – large models, lots of data            |
+| **Inference Cost**      | **Low** – runs fast              | **Medium** – real-time possible on decent GPU | **High** – needs strong GPU for real-time     |
+| **Use in Real-Time**    | **Very suitable**                | **Possible with optimization**           | **Challenging**, especially on edge devices      |
+
 It's time to try out the model we trained, first start the simulation:
 ```bash
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
@@ -1876,9 +1887,11 @@ Video with updated model on Linux PC on red line
 
 # Test on the real robot
 
-Different network that can run on the robot
+The above architecture with about 1 million parameters is too big to run on the robot's slow Raspberry Pi 3, but as we saw the original LeNet-5 had only 61,706 parameters and was able to classify handwritten characters. Also we saw that classification CNNs are usually small and suitable for real time usage.
 
-```
+On the `robot` branch there is a much smaller network with only 932 trainable parameters (1000 times smaller than our previous network):
+
+```cpp
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
 ┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
@@ -1909,7 +1922,7 @@ Different network that can run on the robot
  Non-trainable params: 0 (0.00 B)
 ```
 
-Trainable params: 932 (1000 times smaller than a LeNet-5)
+
 
 ros2 launch turtlebot3_bringup hardware.launch.py  
 ros2 run turtlebot3_mogi_py line_follower_cnn_robot

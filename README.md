@@ -29,11 +29,12 @@
 [image27]: ./assets/training-1.png "Training"
 [image28]: ./assets/training-2.png "Training"
 [image29]: ./assets/trajectory.png "mogi_trajectory_server"
+[image30]: ./assets/line-following-4.png "Line following"
 
 # Week 1-8: Cognitive robotics
 
 ## This is how far we will get by the end of this lesson: 
-  <a href="https://youtu.be/Exqm_VrOytY"><img width="600" src="./assets/youtube-line-following.png"></a>  
+<a href="https://youtu.be/Exqm_VrOytY"><img width="600" src="./assets/youtube-line-following.png"></a>  
 
 ## Here you can see a short video about the final projects from the previous years:
 
@@ -915,7 +916,7 @@ In this lesson we'll use [the simulated and the real Turtlebot3 robot](https://e
 
 Let's download the following GitHub repositories with the right branch (using the `-b branch` flag) to our colcon workspace:
 
-```bash
+```yaml
 git clone -b ros2 https://github.com/MOGI-ROS/turtlebot3_msgs
 git clone -b mogi-ros2 https://github.com/MOGI-ROS/turtlebot3
 git clone -b new_gazebo https://github.com/MOGI-ROS/turtlebot3_simulations
@@ -1018,11 +1019,11 @@ This environment variable used in ROS2 that plays a key role in how nodes commun
 First, we have to make sure that the robots are on the same wireless network, if needed this must be set up using a screen and a keyboard. The wifi networks can be configured by editing the `/etc/netplan/50-cloud-init.yaml` file.
 
 When the robot is on the same network as our PC we can connect to it using SSH, where the user name is `pi` and the IP address must match with our robot's IP address:
-```bash
+```yaml
 ssh pi@192.168.1.45
 ```
 Then we are asked to enter the password, which is `123` for this image:
-```
+```yaml
 pi@192.168.1.45's password:
 ```
 
@@ -1057,7 +1058,7 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py
 # Turtlebot3 MOGI
 
 After this point we'll use the `turtlebot3_mogi` package which is available in this repository and you can download into your workspace with the following command:
-```bash
+```yaml
 git clone https://github.com/MOGI-ROS/Week-1-8-Cognitive-robotics
 ```
 
@@ -1128,7 +1129,7 @@ turtlebot3_mogi$ tree
 ---
 
 Important: this package has a dependency on the `mogi_trajectory_server` package that helps visualizing the robot's past trajectory. You can download this package from git to your workspace to use it:
-```bash
+```yaml
 git clone https://github.com/MOGI-ROS/mogi_trajectory_server
 ```
 ![alt text][image29]
@@ -1242,17 +1243,17 @@ workon tf
 ```
 
 Start a new terminal and you'll get the following error message because in `.bashrc` we used the command `workon tf` but there is no virtual environment named `tf` yet:
-```bash
+```yaml
 ERROR: Environment 'tf' does not exist. Create it with 'mkvirtualenv tf'.
 ```
 
 So let's create one with the following command:
-```bash
+```yaml
 mkvirtualenv tf
 ```
 
 Now, start a new terminal and you should see the active virtual environment between parentheses in your terminal:
-```bash
+```yaml
 (tf) david@david-ubuntu24:~$ 
 ```
 
@@ -1260,7 +1261,7 @@ Now, start a new terminal and you should see the active virtual environment betw
 
 Let's install Python packages that we'll use, to ensure compatibility with the codes in this repository let's use a specific version from `numpy` and `tensorflow`:
 
-```bash
+```cpp
 pip install tensorflow==2.18.0
 pip install imutils
 pip install scikit-learn
@@ -1636,7 +1637,7 @@ LeNet-5 was originally invented by Yann LeCun and colleagues for handwritten dig
 It was one of the first convolutional neural networks (CNN). LeNet-5 was pioneering for CNNs and laid the groundwork for modern deep learning in vision.
 
 I'm cheating a little bit here, because this network that we use is significantly bigger than the original LeNet-5 that had the following architecture:
-```
+```cpp
 ┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ Layer    ┃ Type                       ┃ Output Shape   ┃ Params Calculation           ┃ Parameters ┃
 ┣━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━┫
@@ -1654,7 +1655,7 @@ Total params: 61,706
 ```
 
 Our version of LeNet has about 1 million trainable parameters!
-```
+```cpp
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
 ┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
@@ -1780,28 +1781,102 @@ And the result is much better!
 
 ![alt text][image28]
 
-This time we were lucky, the validation loss was high only because of a not balanced input data we don't have to change anything on our model.
+This time we were lucky, the validation loss was high only because of a not balanced input data - less images for no line - we don't have to change anything on our model.
 
 ## Line following with CNN
 
-Let's 
-
-```python
-model_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
+It's time to try out the model we trained, first start the simulation:
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
 ```
 
-OpenCV version: 4.11.0
-Tensorflow version: 2.18.0
-Keras version: 3.7.0
-CNN model: /home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras
-Model's Keras version: 3.7.0
+Then in another terminal start the line following with the neural network:
+```bash
+ros2 run turtlebot3_mogi_py line_follower_cnn
+```
 
+If the right version of Tensorflow and Keras is installed the node will start and we see the following information in the terminal:
+
+```yaml
+OpenCV version: 4.11.0  
+Tensorflow version: 2.18.0  
+Keras version: 3.7.0  
+CNN model: /home/david/ros2_ws/install/turtlebot3_mogi_py/share/turtlebot3_mogi_py/network_model/model.best.keras
+Model's Keras version: 3.7.0  
+```
+
+> If your Keras version doesn't match you'll get the follwoing message and the node stops.
+> ```yaml
+> You are using Keras version 3.6.0 , but the model was built using 3.7.0
+> ```
+
+Here is a video about the node and the simulation:  
+<a href="https://youtu.be/ImYu4pY0-ds"><img width="600" src="./assets/youtube-cnn.png"></a>  
+
+But what do we see on the small images?  
+![alt text][image30]
+
+We extract the `conv2d_1` layer on the left and the `activation_1` right after it on the right.
+
+```python
+# Define a new model to extract intermediate layer outputs
+self.activation_model_1 = tf.keras.models.Model(inputs=self.model.inputs, outputs=self.model.get_layer("conv2d_1").output)
+self.activation_model_2 = tf.keras.models.Model(inputs=self.model.inputs, outputs=self.model.get_layer("activation_1").output)
+```
+
+As a reminder, here is architecture of our CNN:
+```cpp
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ conv2d (Conv2D)                      │ (None, 24, 24, 20)          │           1,520 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation (Activation)              │ (None, 24, 24, 20)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d (MaxPooling2D)         │ (None, 12, 12, 20)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d_1 (Conv2D)                    │ (None, 12, 12, 50)          │          25,050 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_1 (Activation)            │ (None, 12, 12, 50)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d_1 (MaxPooling2D)       │ (None, 6, 6, 50)            │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ flatten (Flatten)                    │ (None, 1800)                │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense (Dense)                        │ (None, 500)                 │         900,500 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_2 (Activation)            │ (None, 500)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_1 (Dense)                      │ (None, 4)                   │           2,004 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_3 (Activation)            │ (None, 4)                   │               0 │
+└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
+ Total params: 929,074 (3.54 MB)
+ Trainable params: 929,074 (3.54 MB)
+ Non-trainable params: 0 (0.00 B)
+```
+
+Let's try it with the dark line:
+
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=dark_background.sdf
+```
+
+And also with the red line, let's remember here that there were no training images with the red line!
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=red_line.sdf
+```
+
+
+Video with updated model on Linux PC on red line
 
 
 
 
 
 # Test on the real robot
+
+Different network that can run on the robot
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓

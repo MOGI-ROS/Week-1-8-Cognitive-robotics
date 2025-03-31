@@ -48,7 +48,7 @@ class ImageSubscriber(Node):
         print("Model's Keras version:", model_version)
 
         if model_version != keras_version_str:
-            print('You are using Keras version ', keras_version_str, ', but the model was built using ', model_version)
+            print('You are using Keras version', keras_version_str, ', but the model was built using', model_version)
             exit()
 
         # Finally load model:

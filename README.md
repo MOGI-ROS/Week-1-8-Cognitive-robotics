@@ -1885,11 +1885,7 @@ And also with the red line, let's remember here that there were no training imag
 ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py world:=red_line.sdf
 ```
 
-
-Video with updated model on Linux PC on red line
-
-
-
+<a href="https://youtu.be/vRrFWKucU9A"><img width="600" src="./assets/youtube-cnn-1.png"></a>  
 
 
 # Test on the real robot

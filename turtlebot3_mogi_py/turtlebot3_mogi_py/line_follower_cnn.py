@@ -3,6 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage, Image
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Twist
+from ament_index_python.packages import get_package_share_directory
 
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
@@ -32,7 +33,10 @@ class ImageSubscriber(Node):
         self.config.gpu_options.allow_growth = True
         self.session = InteractiveSession(config=self.config)
 
-        model_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
+        # We can use an absolute path to the model file, or we can use the package share directory if we made sure that model files were copied there by setup.py
+        #model_path = "/home/david/ros2_ws/src/ROS2-lessons/Week-1-8-Cognitive-robotics/turtlebot3_mogi_py/network_model/model.best.keras"
+        pkg_turtlebot3_mogi_py = get_package_share_directory('turtlebot3_mogi_py')
+        model_path = pkg_turtlebot3_mogi_py + "/network_model/model.best.keras"
 
         print("Tensorflow version: %s" % tf.__version__)
         keras_version_str = str(keras_version)

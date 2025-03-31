@@ -30,6 +30,7 @@
 [image28]: ./assets/training-2.png "Training"
 [image29]: ./assets/trajectory.png "mogi_trajectory_server"
 [image30]: ./assets/line-following-4.png "Line following"
+[image31]: ./assets/smaller-cnn.png "CNN for the robot"
 
 # Week 1-8: Cognitive robotics
 
@@ -1922,7 +1923,29 @@ On the `robot` branch there is a much smaller network with only 932 trainable pa
  Non-trainable params: 0 (0.00 B)
 ```
 
+Switch to the `robot` branch, rebuild the workspace and try the node:
+```bash
+ros2 launch turtlebot3_mogi simulation_bringup_line_follow.launch.py
+```
 
+Then in another terminal start the line following with the neural network:
+```bash
+ros2 run turtlebot3_mogi_py line_follower_cnn
+```
 
-ros2 launch turtlebot3_bringup hardware.launch.py  
+![alt text][image31]
+
+We only have 4 neurons in the `conv2d_1` and `activation_1` layers.
+
+On the real turtlebots we should always have the `robot` branch checked out, and then we can start this small CNN without the graphical interface with the following commands:
+
+```bash
+ros2 launch turtlebot3_bringup hardware.launch.py
+```
+
+Then in another terminal start the line following with the neural network:
+```bash
 ros2 run turtlebot3_mogi_py line_follower_cnn_robot
+```
+
+  
